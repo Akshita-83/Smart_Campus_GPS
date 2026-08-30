@@ -63,3 +63,25 @@ def get_locations(db: Session = Depends(get_db)):
     locations = db.query(CampusLocation).all()
 
     return locations
+
+# Delete a campus location
+@router.delete("/{location_id}")
+def delete_location(
+    location_id: int,
+    db: Session = Depends(get_db)
+):
+    location = db.query(CampusLocation).filter(
+        CampusLocation.id == location_id
+    ).first()
+
+    if not location:
+        return {
+            "message": "Location not found"
+        }
+
+    db.delete(location)
+    db.commit()
+
+    return {
+        "message": "Location deleted successfully"
+    }
