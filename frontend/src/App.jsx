@@ -15,6 +15,10 @@ import L from "leaflet"
 import "./App.css"
 
 
+// ==========================================
+// LEAFLET MARKER ICON
+// ==========================================
+
 delete L.Icon.Default.prototype._getIconUrl
 
 L.Icon.Default.mergeOptions({
@@ -29,25 +33,42 @@ L.Icon.Default.mergeOptions({
 })
 
 
+// ==========================================
+// MAP CONTROLLER
+// ==========================================
+
 function MapController({ location }) {
 
   const map = useMap()
 
-  if (location) {
+  useEffect(() => {
 
-    map.setView(
-      [location.latitude, location.longitude],
-      18
-    )
+    if (location) {
 
-  }
+      map.flyTo(
+        [location.latitude, location.longitude],
+        18,
+        {
+          duration: 1
+        }
+      )
+
+    }
+
+  }, [location, map])
 
   return null
 }
 
 
+// ==========================================
+// MAIN APP
+// ==========================================
+
 function App() {
-const [user, setUser] = useState(null)
+
+  const [user, setUser] = useState(null)
+
   const [locations, setLocations] = useState([])
 
   const [search, setSearch] = useState("")
@@ -58,6 +79,10 @@ const [user, setUser] = useState(null)
 
   const [error, setError] = useState("")
 
+
+  // ==========================================
+  // FETCH LOCATIONS
+  // ==========================================
 
   useEffect(() => {
 
@@ -83,6 +108,10 @@ const [user, setUser] = useState(null)
   }, [])
 
 
+  // ==========================================
+  // SEARCH LOCATIONS
+  // ==========================================
+
   const filteredLocations = locations.filter((location) => {
 
     const text = search.toLowerCase()
@@ -94,14 +123,30 @@ const [user, setUser] = useState(null)
 
   })
 
- if (!user) {
+
+  // ==========================================
+  // LOGIN
+  // ==========================================
+
+  if (!user) {
+
     return (
       <Login onLogin={setUser} />
     )
+
   }
+
+
+  // ==========================================
+  // MAIN UI
+  // ==========================================
+
   return (
 
     <div className="app">
+
+
+      {/* HEADER */}
 
       <header className="header">
 
@@ -117,7 +162,12 @@ const [user, setUser] = useState(null)
       <div className="content">
 
 
+        {/* SIDEBAR */}
+
         <aside className="sidebar">
+
+
+          {/* SEARCH */}
 
           <input
             className="search-box"
@@ -156,9 +206,11 @@ const [user, setUser] = useState(null)
                 <div
                   className="location-card"
                   key={location.id}
-                  onClick={() =>
+                  onClick={() => {
+
                     setSelectedLocation(location)
-                  }
+
+                  }}
                 >
 
                   <h3>
@@ -184,6 +236,8 @@ const [user, setUser] = useState(null)
         </aside>
 
 
+        {/* MAP */}
+
         <main className="map-area">
 
           {!loading && !error && (
@@ -200,12 +254,16 @@ const [user, setUser] = useState(null)
               />
 
 
+              {/* MOVE MAP TO SELECTED LOCATION */}
+
               <MapController
                 location={selectedLocation}
               />
 
 
-              {locations.map((location) => (
+              {/* MARKERS */}
+
+              {filteredLocations.map((location) => (
 
                 <Marker
                   key={location.id}
@@ -246,6 +304,7 @@ const [user, setUser] = useState(null)
     </div>
 
   )
+
 }
 
 
