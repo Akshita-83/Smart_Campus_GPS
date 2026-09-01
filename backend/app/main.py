@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database.database import Base, engine
 from app.models.user import User
 from app.models.location import CampusLocation
-from app.routes import users, locations
+from app.models.shuttle import Shuttle
+from app.routes import users, locations, shuttles
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -28,6 +29,7 @@ app.add_middleware(
 )
 app.include_router(users.router)
 app.include_router(locations.router)
+app.include_router(shuttles.router)
 
 @app.get("/")
 
