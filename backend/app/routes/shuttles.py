@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -40,23 +41,15 @@ def create_shuttle(
 ):
 
     shuttle = Shuttle(
-
         vehicle_number=vehicle_number,
-
         driver_name=driver_name,
-
         latitude=latitude,
-
         longitude=longitude,
-
         status="active"
-
     )
 
     db.add(shuttle)
-
     db.commit()
-
     db.refresh(shuttle)
 
     return shuttle
@@ -71,9 +64,7 @@ def get_shuttles(
     db: Session = Depends(get_db)
 ):
 
-    shuttles = db.query(
-        Shuttle
-    ).all()
+    shuttles = db.query(Shuttle).all()
 
     return shuttles
 
@@ -84,23 +75,17 @@ def get_shuttles(
 
 @router.put("/{shuttle_id}/location")
 def update_shuttle_location(
-
     shuttle_id: int,
-
     latitude: float,
-
     longitude: float,
-
     db: Session = Depends(get_db)
-
 ):
 
-    shuttle = db.query(
-        Shuttle
-    ).filter(
-        Shuttle.id == shuttle_id
-    ).first()
-
+    shuttle = (
+        db.query(Shuttle)
+        .filter(Shuttle.id == shuttle_id)
+        .first()
+    )
 
     if not shuttle:
 
@@ -108,21 +93,53 @@ def update_shuttle_location(
             "message": "Shuttle not found"
         }
 
-
     shuttle.latitude = latitude
-
     shuttle.longitude = longitude
 
     db.commit()
-
     db.refresh(shuttle)
 
+    return {
+        "message": "Shuttle location updated successfully",
+        "shuttle": shuttle
+    }
+
+
+# ==========================================
+# UPDATE SHUTTLE STATUS
+# ==========================================
+
+@router.put("/{shuttle_id}/status")
+def update_shuttle_status(
+    shuttle_id: int,
+    status: str,
+    db: Session = Depends(get_db)
+):
+
+    shuttle = (
+        db.query(Shuttle)
+        .filter(Shuttle.id == shuttle_id)
+        .first()
+    )
+
+    if not shuttle:
+
+        return {
+            "message": "Shuttle not found"
+        }
+
+    if status not in ["active", "inactive"]:
+
+        return {
+            "message": "Status must be active or inactive"
+        }
+
+    shuttle.status = status
+
+    db.commit()
+    db.refresh(shuttle)
 
     return {
-
-        "message":
-        "Shuttle location updated successfully",
-
+        "message": "Shuttle status updated successfully",
         "shuttle": shuttle
-
     }
