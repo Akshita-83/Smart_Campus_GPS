@@ -1,6 +1,8 @@
+
 import Login from "./pages/Login"
 import { useEffect, useState } from "react"
 import axios from "axios"
+
 import "leaflet/dist/leaflet.css"
 
 import {
@@ -12,6 +14,7 @@ import {
 } from "react-leaflet"
 
 import L from "leaflet"
+
 import "leaflet-routing-machine"
 import "leaflet-routing-machine/dist/leaflet-routing-machine.css"
 
@@ -19,7 +22,7 @@ import "./App.css"
 
 
 // ======================================================
-// DEFAULT LEAFLET MARKER ICON
+// LEAFLET DEFAULT ICON
 // ======================================================
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -56,7 +59,9 @@ const userIcon = L.divIcon({
   `,
 
   iconSize: [22, 22],
+
   iconAnchor: [11, 11],
+
   popupAnchor: [0, -11]
 
 })
@@ -88,7 +93,9 @@ const activeShuttleIcon = L.divIcon({
   `,
 
   iconSize: [42, 42],
+
   iconAnchor: [21, 21],
+
   popupAnchor: [0, -21]
 
 })
@@ -121,7 +128,9 @@ const inactiveShuttleIcon = L.divIcon({
   `,
 
   iconSize: [42, 42],
+
   iconAnchor: [21, 21],
+
   popupAnchor: [0, -21]
 
 })
@@ -228,7 +237,9 @@ const createLocationIcon = (type) => {
     `,
 
     iconSize: [38, 38],
+
     iconAnchor: [19, 19],
+
     popupAnchor: [0, -19]
 
   })
@@ -250,11 +261,18 @@ function MapController({ location }) {
       return
     }
 
+    const latitude = Number(location.latitude)
+    const longitude = Number(location.longitude)
+
+    if (
+      Number.isNaN(latitude) ||
+      Number.isNaN(longitude)
+    ) {
+      return
+    }
+
     map.flyTo(
-      [
-        location.latitude,
-        location.longitude
-      ],
+      [latitude, longitude],
       18,
       {
         duration: 1
@@ -281,11 +299,18 @@ function UserLocationController({ location }) {
       return
     }
 
+    const latitude = Number(location.latitude)
+    const longitude = Number(location.longitude)
+
+    if (
+      Number.isNaN(latitude) ||
+      Number.isNaN(longitude)
+    ) {
+      return
+    }
+
     map.flyTo(
-      [
-        location.latitude,
-        location.longitude
-      ],
+      [latitude, longitude],
       18,
       {
         duration: 1
@@ -311,7 +336,32 @@ function RoutingControl({
 
   useEffect(() => {
 
-    if (!userLocation || !destination) {
+    if (
+      !userLocation ||
+      !destination
+    ) {
+      return
+    }
+
+    const userLat =
+      Number(userLocation.latitude)
+
+    const userLng =
+      Number(userLocation.longitude)
+
+    const destinationLat =
+      Number(destination.latitude)
+
+    const destinationLng =
+      Number(destination.longitude)
+
+
+    if (
+      Number.isNaN(userLat) ||
+      Number.isNaN(userLng) ||
+      Number.isNaN(destinationLat) ||
+      Number.isNaN(destinationLng)
+    ) {
       return
     }
 
@@ -322,13 +372,13 @@ function RoutingControl({
         waypoints: [
 
           L.latLng(
-            userLocation.latitude,
-            userLocation.longitude
+            userLat,
+            userLng
           ),
 
           L.latLng(
-            destination.latitude,
-            destination.longitude
+            destinationLat,
+            destinationLng
           )
 
         ],
@@ -425,6 +475,9 @@ function App() {
     setError] =
     useState("")
 
+  const [sosMessage, setSosMessage] = useState("")
+const [sosLoading, setSosLoading] = useState(false)
+
 
   // ====================================================
   // GET USER LOCATION
@@ -439,7 +492,6 @@ function App() {
       )
 
       return
-
     }
 
 
@@ -447,7 +499,7 @@ function App() {
 
       (position) => {
 
-        const location = {
+        setUserLocation({
 
           latitude:
             position.coords.latitude,
@@ -455,15 +507,16 @@ function App() {
           longitude:
             position.coords.longitude
 
-        }
-
-        setUserLocation(location)
+        })
 
       },
 
       (error) => {
 
-        console.error(error)
+        console.error(
+          "Location error:",
+          error
+        )
 
         alert(
           "Please allow location access in your browser."
@@ -482,12 +535,14 @@ function App() {
 
   useEffect(() => {
 
-    axios
-      .get(
-        "http://127.0.0.1:8000/locations/"
-      )
+    const fetchLocations = async () => {
 
-      .then((response) => {
+      try {
+
+        const response =
+          await axios.get(
+            "http://127.0.0.1:8000/locations/"
+          )
 
         console.log(
           "Campus locations:",
@@ -495,74 +550,84 @@ function App() {
         )
 
         setLocations(
-          response.data
+          Array.isArray(response.data)
+            ? response.data
+            : []
         )
 
-        setLoading(false)
+      }
 
-      })
-
-      .catch((error) => {
+      catch (err) {
 
         console.error(
           "Could not load campus locations:",
-          error
+          err
         )
 
         setError(
           "Could not load campus locations."
         )
 
+      }
+
+      finally {
+
         setLoading(false)
 
-      })
+      }
+
+    }
+
+
+    fetchLocations()
 
   }, [])
 
 
   // ====================================================
-  // LIVE SHUTTLE TRACKING
+  // FETCH SHUTTLES
+  // LIVE EVERY 3 SECONDS
   // ====================================================
 
   useEffect(() => {
 
-    const fetchShuttles = () => {
+    const fetchShuttles = async () => {
 
-      axios
-        .get(
-          "http://127.0.0.1:8000/shuttles/"
+      try {
+
+        const response =
+          await axios.get(
+            "http://127.0.0.1:8000/shuttles/"
+          )
+
+        console.log(
+          "Shuttles:",
+          response.data
         )
 
-        .then((response) => {
+        setShuttles(
+          Array.isArray(response.data)
+            ? response.data
+            : []
+        )
 
-          console.log(
-            "Shuttle data:",
-            response.data
-          )
+      }
 
-          setShuttles(
-            response.data
-          )
+      catch (err) {
 
-        })
+        console.error(
+          "Could not load shuttles:",
+          err
+        )
 
-        .catch((error) => {
-
-          console.error(
-            "Could not load shuttles:",
-            error
-          )
-
-        })
+      }
 
     }
 
 
-    // Fetch immediately
     fetchShuttles()
 
 
-    // Update every 3 seconds
     const interval =
       setInterval(
         fetchShuttles,
@@ -580,14 +645,14 @@ function App() {
 
 
   // ====================================================
-  // SEARCH FILTER
+  // SEARCH
   // ====================================================
 
   const filteredLocations =
     locations.filter((location) => {
 
       const text =
-        search.toLowerCase()
+        search.toLowerCase().trim()
 
       return (
 
@@ -609,7 +674,64 @@ function App() {
   // ====================================================
   // LOGIN
   // ====================================================
+// ====================================================
+// SOS EMERGENCY
+// ====================================================
 
+const sendSOS = async () => {
+
+  if (!userLocation) {
+
+    alert("Please click My Location first.")
+
+    return
+
+  }
+
+  const confirmed = window.confirm(
+    "🚨 Are you sure you want to send an SOS emergency alert?"
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  setSosLoading(true)
+  setSosMessage("")
+
+  try {
+
+    const response = await axios.post(
+      "http://127.0.0.1:8000/incidents/",
+      {
+        user_id: user.id,
+        incident_type: "SOS",
+        latitude: Number(userLocation.latitude),
+        longitude: Number(userLocation.longitude),
+        description: "Emergency SOS alert from student"
+      }
+    )
+
+    console.log("SOS response:", response.data)
+
+    setSosMessage(
+      "🚨 SOS sent successfully. Security has been notified."
+    )
+
+  } catch (error) {
+
+    console.error("SOS error:", error)
+
+    setSosMessage(
+      "❌ Could not send SOS. Please contact security directly."
+    )
+
+  } finally {
+
+    setSosLoading(false)
+
+  }
+}
   if (!user) {
 
     return (
@@ -632,9 +754,9 @@ function App() {
     <div className="app">
 
 
-      {/* =================================================
+      {/* ==================================================
           HEADER
-      ================================================= */}
+      ================================================== */}
 
       <header className="header">
 
@@ -652,9 +774,9 @@ function App() {
       <div className="content">
 
 
-        {/* =================================================
+        {/* ==================================================
             SIDEBAR
-        ================================================= */}
+        ================================================== */}
 
         <aside className="sidebar">
 
@@ -711,11 +833,42 @@ function App() {
             🔵 My Location
 
           </button>
+<button
+  onClick={sendSOS}
+  disabled={sosLoading}
+  style={{
+    width: "100%",
+    padding: "13px",
+    marginBottom: "15px",
+    border: "none",
+    borderRadius: "8px",
+    background: sosLoading ? "#999" : "#d32f2f",
+    color: "white",
+    fontSize: "16px",
+    fontWeight: "bold",
+    cursor: sosLoading ? "not-allowed" : "pointer"
+  }}
+>
+  {sosLoading ? "Sending SOS..." : "🚨 SOS Emergency"}
+</button>
 
+{sosMessage && (
+  <p
+    style={{
+      padding: "10px",
+      marginBottom: "15px",
+      borderRadius: "8px",
+      background: "#fff3cd",
+      fontSize: "13px"
+    }}
+  >
+    {sosMessage}
+  </p>
+)}
 
-          {/* =================================================
+          {/* ==================================================
               LEGEND
-          ================================================= */}
+          ================================================== */}
 
           <div
             style={{
@@ -752,9 +905,9 @@ function App() {
           </div>
 
 
-          {/* =================================================
+          {/* ==================================================
               SHUTTLE TRACKING
-          ================================================= */}
+          ================================================== */}
 
           <div
             style={{
@@ -767,8 +920,7 @@ function App() {
 
               borderRadius: "10px",
 
-              border:
-                "1px solid #ffcdd2"
+              border: "1px solid #ffcdd2"
 
             }}
           >
@@ -793,14 +945,100 @@ function App() {
 
             ) : (
 
-              shuttles.map(
-                (shuttle) => (
+              shuttles.map((shuttle) => (
 
-                  <div
+                <div
 
-                    key={shuttle.id}
+                  key={shuttle.id}
 
-                    onClick={() => {
+                  onClick={() => {
+
+                    setSelectedShuttle(
+                      shuttle
+                    )
+
+                    setSelectedLocation(
+                      null
+                    )
+
+                  }}
+
+                  style={{
+
+                    padding: "10px",
+
+                    marginBottom: "8px",
+
+                    background: "white",
+
+                    borderRadius: "8px",
+
+                    cursor: "pointer",
+
+                    border:
+                      shuttle.status === "active"
+                        ? "1px solid #ffcdd2"
+                        : "1px solid #ddd",
+
+                    boxShadow:
+                      "0 1px 4px rgba(0,0,0,0.08)"
+
+                  }}
+
+                >
+
+                  <strong>
+
+                    🚌 {shuttle.vehicle_number}
+
+                  </strong>
+
+
+                  <p
+                    style={{
+                      margin: "5px 0",
+                      fontSize: "13px"
+                    }}
+                  >
+
+                    Driver:{" "}
+
+                    {shuttle.driver_name ||
+                      "Not assigned"}
+
+                  </p>
+
+
+                  <span
+                    style={{
+
+                      color:
+                        shuttle.status === "active"
+                          ? "#2e7d32"
+                          : "#757575",
+
+                      fontWeight: "bold",
+
+                      fontSize: "13px"
+
+                    }}
+                  >
+
+                    {shuttle.status === "active"
+                      ? "🟢 ACTIVE"
+                      : "⚪ INACTIVE"}
+
+                  </span>
+
+
+                  <br />
+
+
+                  <button
+
+                    onClick={(e) => {
+
+                      e.stopPropagation()
 
                       setSelectedShuttle(
                         shuttle
@@ -814,133 +1052,43 @@ function App() {
 
                     style={{
 
-                      padding: "10px",
+                      marginTop: "8px",
 
-                      marginBottom: "8px",
+                      padding: "7px 10px",
 
-                      background: "white",
+                      border: "none",
 
-                      borderRadius: "8px",
+                      borderRadius: "6px",
 
-                      cursor: "pointer",
-
-                      border:
+                      background:
                         shuttle.status === "active"
-                          ? "1px solid #ffcdd2"
-                          : "1px solid #ddd",
+                          ? "#e53935"
+                          : "#757575",
 
-                      boxShadow:
-                        "0 1px 4px rgba(0,0,0,0.08)"
+                      color: "white",
+
+                      cursor: "pointer"
 
                     }}
 
                   >
 
-                    <strong>
+                    📍 View on Map
 
-                      🚌{" "}
-                      {shuttle.vehicle_number}
+                  </button>
 
-                    </strong>
+                </div>
 
-
-                    <p
-                      style={{
-                        margin: "5px 0",
-                        fontSize: "13px"
-                      }}
-                    >
-
-                      Driver:{" "}
-
-                      {shuttle.driver_name ||
-                        "Not assigned"}
-
-                    </p>
-
-
-                    <span
-                      style={{
-
-                        color:
-                          shuttle.status === "active"
-                            ? "#2e7d32"
-                            : "#757575",
-
-                        fontWeight: "bold",
-
-                        fontSize: "13px"
-
-                      }}
-                    >
-
-                      {shuttle.status === "active"
-                        ? "🟢 ACTIVE"
-                        : "⚪ INACTIVE"}
-
-                    </span>
-
-
-                    <br />
-
-
-                    <button
-
-                      onClick={(e) => {
-
-                        e.stopPropagation()
-
-                        setSelectedShuttle(
-                          shuttle
-                        )
-
-                        setSelectedLocation(
-                          null
-                        )
-
-                      }}
-
-                      style={{
-
-                        marginTop: "8px",
-
-                        padding:
-                          "7px 10px",
-
-                        border: "none",
-
-                        borderRadius: "6px",
-
-                        background:
-                          shuttle.status === "active"
-                            ? "#e53935"
-                            : "#757575",
-
-                        color: "white",
-
-                        cursor: "pointer"
-
-                      }}
-
-                    >
-
-                      📍 View on Map
-
-                    </button>
-
-                  </div>
-
-                )
-              )
+              ))
 
             )}
 
           </div>
 
 
-          {/* =================================================
+          {/* ==================================================
               CAMPUS LOCATIONS
-          ================================================= */}
+          ================================================== */}
 
           <h2>
             Campus Locations
@@ -1005,16 +1153,14 @@ function App() {
 
                         <h3>
 
-                          📍{" "}
-                          {location.name}
+                          📍 {location.name}
 
                         </h3>
 
 
                         <p>
 
-                          Type:{" "}
-                          {location.type}
+                          Type: {location.type}
 
                         </p>
 
@@ -1079,6 +1225,7 @@ function App() {
                       </div>
 
                     )
+
                   )
 
                 )
@@ -1088,370 +1235,424 @@ function App() {
         </aside>
 
 
-        {/* =================================================
+        {/* ==================================================
             MAP
-        ================================================= */}
+        ================================================== */}
 
         <main className="map-area">
 
+          <MapContainer
 
-          {!loading &&
-            !error && (
+            center={[
+              26.8438,
+              75.5650
+            ]}
 
-              <MapContainer
+            zoom={17}
 
-                center={[
-                  26.8438,
-                  75.5650
+            className="map"
+
+          >
+
+
+            {/* ==================================================
+                OPEN STREET MAP
+            ================================================== */}
+
+            <TileLayer
+
+              attribution=
+                '&copy; OpenStreetMap contributors'
+
+              url=
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+
+            />
+
+
+            {/* ==================================================
+                CONTROLLERS
+            ================================================== */}
+
+            <MapController
+              location={
+                selectedLocation
+              }
+            />
+
+
+            <MapController
+              location={
+                selectedShuttle
+              }
+            />
+
+
+            <UserLocationController
+              location={
+                userLocation
+              }
+            />
+
+
+            {/* ==================================================
+                USER MARKER
+            ================================================== */}
+
+            {userLocation && (
+
+              <Marker
+
+                position={[
+
+                  Number(
+                    userLocation.latitude
+                  ),
+
+                  Number(
+                    userLocation.longitude
+                  )
+
                 ]}
 
-                zoom={17}
-
-                className="map"
+                icon={userIcon}
 
               >
 
+                <Popup>
 
-                {/* OPEN STREET MAP */}
+                  🔵 <strong>
+                    You are here
+                  </strong>
 
-                <TileLayer
+                </Popup>
 
-                  attribution=
-                    '&copy; OpenStreetMap contributors'
+              </Marker>
 
-                  url=
-                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-
-                />
-
-
-                {/* =================================================
-                    MAP CONTROLLERS
-                ================================================= */}
-
-                <MapController
-                  location={
-                    selectedLocation
-                  }
-                />
+            )}
 
 
-                <UserLocationController
-                  location={
-                    userLocation
-                  }
-                />
+            {/* ==================================================
+                CAMPUS LOCATION MARKERS
+            ================================================== */}
+
+            {filteredLocations.map(
+              (location) => {
+
+                const latitude =
+                  Number(
+                    location.latitude
+                  )
+
+                const longitude =
+                  Number(
+                    location.longitude
+                  )
 
 
-                <MapController
-                  location={
-                    selectedShuttle
-                  }
-                />
+                if (
+                  Number.isNaN(latitude) ||
+                  Number.isNaN(longitude)
+                ) {
+
+                  return null
+
+                }
 
 
-                {/* =================================================
-                    USER LOCATION
-                ================================================= */}
-
-                {userLocation && (
+                return (
 
                   <Marker
 
+                    key={location.id}
+
                     position={[
-
-                      userLocation.latitude,
-
-                      userLocation.longitude
-
+                      latitude,
+                      longitude
                     ]}
 
-                    icon={userIcon}
+                    icon={
+                      createLocationIcon(
+                        location.type
+                      )
+                    }
 
                   >
 
                     <Popup>
 
-                      🔵{" "}
                       <strong>
-                        You are here
+                        {location.name}
                       </strong>
+
+                      <br />
+
+                      Type:{" "}
+                      {location.type}
+
+                      <br />
+
+                      {location.description}
+
+                      <br />
+                      <br />
+
+                      <button
+
+                        onClick={() => {
+
+                          if (!userLocation) {
+
+                            alert(
+                              "First click My Location."
+                            )
+
+                            return
+
+                          }
+
+                          setNavigationDestination(
+                            location
+                          )
+
+                        }}
+
+                        style={{
+
+                          padding:
+                            "8px 12px",
+
+                          border: "none",
+
+                          borderRadius:
+                            "6px",
+
+                          background:
+                            "#123c69",
+
+                          color: "white",
+
+                          cursor:
+                            "pointer"
+
+                        }}
+
+                      >
+
+                        🧭 Navigate Here
+
+                      </button>
 
                     </Popup>
 
                   </Marker>
 
-                )}
+                )
+
+              }
+            )}
 
 
-                {/* =================================================
-                    CAMPUS LOCATIONS
-                ================================================= */}
+            {/* ==================================================
+                SHUTTLE MARKERS
+            ================================================== */}
 
-                {filteredLocations.map(
-                  (location) => (
+            {shuttles.map(
+              (shuttle) => {
 
-                    <Marker
+                const latitude =
+                  Number(
+                    shuttle.latitude
+                  )
 
-                      key={location.id}
+                const longitude =
+                  Number(
+                    shuttle.longitude
+                  )
 
-                      position={[
 
-                        location.latitude,
+                if (
+                  Number.isNaN(latitude) ||
+                  Number.isNaN(longitude)
+                ) {
 
-                        location.longitude
+                  console.error(
+                    "Invalid shuttle coordinates:",
+                    shuttle
+                  )
 
-                      ]}
+                  return null
 
-                      icon={
-                        createLocationIcon(
-                          location.type
+                }
+
+
+                return (
+
+                  <Marker
+
+                    key={shuttle.id}
+
+                    position={[
+                      latitude,
+                      longitude
+                    ]}
+
+                    icon={
+                      shuttle.status === "active"
+                        ? activeShuttleIcon
+                        : inactiveShuttleIcon
+                    }
+
+                    eventHandlers={{
+
+                      click: () => {
+
+                        setSelectedShuttle(
+                          shuttle
                         )
+
+                        setSelectedLocation(
+                          null
+                        )
+
                       }
 
-                    >
+                    }}
 
-                      <Popup>
+                  >
 
-                        <strong>
-                          {location.name}
-                        </strong>
+                    <Popup>
 
-                        <br />
+                      🚌 <strong>
 
-                        Type:{" "}
-                        {location.type}
+                        {shuttle.vehicle_number}
 
-                        <br />
+                      </strong>
 
-                        {location.description}
 
-                        <br />
-                        <br />
+                      <br />
 
-                        <button
 
-                          onClick={() => {
+                      Driver:{" "}
 
-                            if (!userLocation) {
+                      {shuttle.driver_name ||
+                        "Not assigned"}
 
-                              alert(
-                                "First click My Location."
-                              )
 
-                              return
+                      <br />
 
-                            }
 
-                            setNavigationDestination(
-                              location
+                      Status:{" "}
+
+                      <strong>
+
+                        {shuttle.status === "active"
+                          ? "🟢 ACTIVE"
+                          : "⚪ INACTIVE"}
+
+                      </strong>
+
+
+                      <br />
+
+
+                      Latitude:{" "}
+                      {latitude}
+
+
+                      <br />
+
+
+                      Longitude:{" "}
+                      {longitude}
+
+
+                      <br />
+                      <br />
+
+
+                      <button
+
+                        onClick={() => {
+
+                          if (!userLocation) {
+
+                            alert(
+                              "First click My Location."
                             )
 
-                          }}
+                            return
 
-                          style={{
+                          }
 
-                            padding:
-                              "8px 12px",
 
-                            border: "none",
+                          setNavigationDestination({
 
-                            borderRadius:
-                              "6px",
+                            latitude:
+                              latitude,
 
-                            background:
-                              "#123c69",
+                            longitude:
+                              longitude
 
-                            color: "white",
+                          })
 
-                            cursor:
-                              "pointer"
+                        }}
 
-                          }}
+                        style={{
 
-                        >
+                          padding:
+                            "8px 12px",
 
-                          🧭 Navigate Here
+                          border: "none",
 
-                        </button>
+                          borderRadius:
+                            "6px",
 
-                      </Popup>
+                          background:
+                            shuttle.status === "active"
+                              ? "#e53935"
+                              : "#757575",
 
-                    </Marker>
+                          color: "white",
 
-                  )
-                )}
+                          cursor:
+                            "pointer"
 
+                        }}
 
-                {/* =================================================
-                    SHUTTLE MARKERS
-                ================================================= */}
+                      >
 
-                {shuttles.map(
-                  (shuttle) => (
+                        🧭 Navigate to Shuttle
 
-                    <Marker
+                      </button>
 
-                      key={shuttle.id}
+                    </Popup>
 
-                      position={[
+                  </Marker>
 
-                        Number(
-                          shuttle.latitude
-                        ),
+                )
 
-                        Number(
-                          shuttle.longitude
-                        )
-
-                      ]}
-
-                      icon={
-                        shuttle.status === "active"
-                          ? activeShuttleIcon
-                          : inactiveShuttleIcon
-                      }
-
-                      eventHandlers={{
-
-                        click: () => {
-
-                          setSelectedShuttle(
-                            shuttle
-                          )
-
-                          setSelectedLocation(
-                            null
-                          )
-
-                        }
-
-                      }}
-
-                    >
-
-                      <Popup>
-
-                        🚌{" "}
-
-                        <strong>
-
-                          {shuttle.vehicle_number}
-
-                        </strong>
-
-
-                        <br />
-
-
-                        Driver:{" "}
-
-                        {shuttle.driver_name ||
-                          "Not assigned"}
-
-
-                        <br />
-
-
-                        Status:{" "}
-
-                        <strong>
-
-                          {shuttle.status === "active"
-                            ? "🟢 ACTIVE"
-                            : "⚪ INACTIVE"}
-
-                        </strong>
-
-
-                        <br />
-                        <br />
-
-
-                        <button
-
-                          onClick={() => {
-
-                            if (!userLocation) {
-
-                              alert(
-                                "First click My Location."
-                              )
-
-                              return
-
-                            }
-
-                            setNavigationDestination({
-
-                              latitude:
-                                Number(
-                                  shuttle.latitude
-                                ),
-
-                              longitude:
-                                Number(
-                                  shuttle.longitude
-                                )
-
-                            })
-
-                          }}
-
-                          style={{
-
-                            padding:
-                              "8px 12px",
-
-                            border: "none",
-
-                            borderRadius:
-                              "6px",
-
-                            background:
-                              shuttle.status === "active"
-                                ? "#e53935"
-                                : "#757575",
-
-                            color: "white",
-
-                            cursor: "pointer"
-
-                          }}
-
-                        >
-
-                          🧭 Navigate to Shuttle
-
-                        </button>
-
-                      </Popup>
-
-                    </Marker>
-
-                  )
-                )}
-
-
-                {/* =================================================
-                    ROUTING
-                ================================================= */}
-
-                <RoutingControl
-
-                  userLocation={
-                    userLocation
-                  }
-
-                  destination={
-                    navigationDestination
-                  }
-
-                />
-
-              </MapContainer>
-
+              }
             )}
+
+
+            {/* ==================================================
+                ROUTING
+            ================================================== */}
+
+            <RoutingControl
+
+              userLocation={
+                userLocation
+              }
+
+              destination={
+                navigationDestination
+              }
+
+            />
+
+          </MapContainer>
 
         </main>
 

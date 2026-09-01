@@ -1,3 +1,5 @@
+from app.models.incident import Incident
+from app.routes.incidents import router as incidents_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,6 +7,7 @@ from app.database.database import Base, engine
 from app.models.user import User
 from app.models.location import CampusLocation
 from app.models.shuttle import Shuttle
+from app.models.incident import Incident
 from app.routes import users, locations, shuttles
 
 # Create database tables
@@ -30,6 +33,7 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(locations.router)
 app.include_router(shuttles.router)
+app.include_router(incidents_router)
 
 @app.get("/")
 
