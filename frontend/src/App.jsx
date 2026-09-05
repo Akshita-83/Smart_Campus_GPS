@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import axios from "axios";
+import L from "leaflet";
 
 import Login from "./pages/Login";
 import SecurityDashboard from "./pages/SecurityDashboard";
@@ -15,14 +17,12 @@ import {
   Polyline,
 } from "react-leaflet";
 
-import L from "leaflet";
-
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   "http://127.0.0.1:8000";
 
 // ======================================================
-// LEAFLET DEFAULT MARKER ICON FIX
+// LEAFLET MARKER FIX
 // ======================================================
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -37,14 +37,10 @@ L.Icon.Default.mergeOptions({
 });
 
 // ======================================================
-// CUSTOM ICON CREATOR
+// CUSTOM ICON
 // ======================================================
 
-const createIcon = (
-  background,
-  emoji,
-  size = 40
-) =>
+const createIcon = (background, emoji, size = 40) =>
   L.divIcon({
     className: "",
     html: `
@@ -73,17 +69,8 @@ const createIcon = (
 // ICONS
 // ======================================================
 
-const shuttleIcon = createIcon(
-  "#e53935",
-  "🚌",
-  40
-);
-
-const studentIcon = createIcon(
-  "#2e7d32",
-  "👤",
-  40
-);
+const shuttleIcon = createIcon("#e53935", "🚌", 40);
+const studentIcon = createIcon("#2e7d32", "👤", 40);
 
 const getLocationIcon = (type) => {
   const colors = {
@@ -105,7 +92,7 @@ const getLocationIcon = (type) => {
 };
 
 // ======================================================
-// GHS MUJ HOSTEL LOCATIONS
+// GHS MUJ LOCATIONS
 // ======================================================
 
 const GHS_LOCATIONS = [
@@ -113,8 +100,7 @@ const GHS_LOCATIONS = [
     id: "ghs-hostel",
     name: "GHS Hostel",
     type: "Hostel",
-    description:
-      "Good Host Spaces (GHS) Hostel, MUJ",
+    description: "Good Host Spaces (GHS) Hostel, MUJ",
     latitude: 26.8411252,
     longitude: 75.5626736,
   },
@@ -122,8 +108,7 @@ const GHS_LOCATIONS = [
     id: "hostel-b5",
     name: "Hostel Block B5",
     type: "Hostel",
-    description:
-      "GHS Boys Hostel Block B5",
+    description: "GHS Boys Hostel Block B5",
     latitude: 26.84295,
     longitude: 75.56315,
   },
@@ -131,8 +116,7 @@ const GHS_LOCATIONS = [
     id: "b7-boys",
     name: "B7 Boy's Block",
     type: "Hostel",
-    description:
-      "GHS Boys Hostel B7 Block",
+    description: "GHS Boys Hostel B7 Block",
     latitude: 26.84335,
     longitude: 75.56275,
   },
@@ -140,8 +124,7 @@ const GHS_LOCATIONS = [
     id: "b6-block",
     name: "B6 Block",
     type: "Hostel",
-    description:
-      "GHS Hostel B6 Block",
+    description: "GHS Hostel B6 Block",
     latitude: 26.84365,
     longitude: 75.56315,
   },
@@ -149,8 +132,7 @@ const GHS_LOCATIONS = [
     id: "b5-block",
     name: "B5 Block",
     type: "Hostel",
-    description:
-      "GHS Hostel B5 Block",
+    description: "GHS Hostel B5 Block",
     latitude: 26.84315,
     longitude: 75.56345,
   },
@@ -158,8 +140,7 @@ const GHS_LOCATIONS = [
     id: "b2-block",
     name: "B2 Block",
     type: "Hostel",
-    description:
-      "GHS Hostel B2 Block",
+    description: "GHS Hostel B2 Block",
     latitude: 26.84365,
     longitude: 75.56375,
   },
@@ -167,8 +148,7 @@ const GHS_LOCATIONS = [
     id: "g1-block",
     name: "G1 Block",
     type: "Hostel",
-    description:
-      "GHS Girls Hostel G1 Block",
+    description: "GHS Girls Hostel G1 Block",
     latitude: 26.84205,
     longitude: 75.56455,
   },
@@ -176,8 +156,7 @@ const GHS_LOCATIONS = [
     id: "g2-block",
     name: "G2 Block",
     type: "Hostel",
-    description:
-      "GHS Girls Hostel G2 Block",
+    description: "GHS Girls Hostel G2 Block",
     latitude: 26.8422,
     longitude: 75.56375,
   },
@@ -185,8 +164,7 @@ const GHS_LOCATIONS = [
     id: "g3-block",
     name: "G3 Block",
     type: "Hostel",
-    description:
-      "GHS Girls Hostel G3 Block",
+    description: "GHS Girls Hostel G3 Block",
     latitude: 26.84205,
     longitude: 75.5639,
   },
@@ -194,22 +172,16 @@ const GHS_LOCATIONS = [
     id: "g4-block",
     name: "G4 Block",
     type: "Hostel",
-    description:
-      "GHS Girls Hostel G4 Block",
+    description: "GHS Girls Hostel G4 Block",
     latitude: 26.84245,
     longitude: 75.56305,
   },
-
-  // ====================================================
-  // FOOD
-  // ====================================================
 
   {
     id: "crazy-chef",
     name: "Crazy Chef",
     type: "Food",
-    description:
-      "Food outlet near GHS Hostel",
+    description: "Food outlet near GHS Hostel",
     latitude: 26.84315,
     longitude: 75.56405,
   },
@@ -217,8 +189,7 @@ const GHS_LOCATIONS = [
     id: "cafe-dialog",
     name: "Café Dialog",
     type: "Food",
-    description:
-      "Café and food outlet",
+    description: "Café and food outlet",
     latitude: 26.84295,
     longitude: 75.56455,
   },
@@ -226,8 +197,7 @@ const GHS_LOCATIONS = [
     id: "all-mart",
     name: "All Mart",
     type: "Shop",
-    description:
-      "Convenience store near GHS Hostel",
+    description: "Convenience store near GHS Hostel",
     latitude: 26.84315,
     longitude: 75.56445,
   },
@@ -235,8 +205,7 @@ const GHS_LOCATIONS = [
     id: "tea-tradition",
     name: "Tea Tradition",
     type: "Food",
-    description:
-      "Tea and refreshments",
+    description: "Tea and refreshments",
     latitude: 26.84255,
     longitude: 75.5632,
   },
@@ -244,8 +213,7 @@ const GHS_LOCATIONS = [
     id: "dev-sweets",
     name: "Dev Sweets And Snacks",
     type: "Food",
-    description:
-      "Sweets and snacks",
+    description: "Sweets and snacks",
     latitude: 26.8424,
     longitude: 75.56345,
   },
@@ -253,8 +221,7 @@ const GHS_LOCATIONS = [
     id: "manipal-mess",
     name: "Manipal Mess",
     type: "Mess",
-    description:
-      "Mess facility",
+    description: "Mess facility",
     latitude: 26.84235,
     longitude: 75.56275,
   },
@@ -262,8 +229,7 @@ const GHS_LOCATIONS = [
     id: "login-cafe",
     name: "Login Cafe",
     type: "Food",
-    description:
-      "Cafe and refreshments",
+    description: "Cafe and refreshments",
     latitude: 26.84225,
     longitude: 75.56475,
   },
@@ -271,8 +237,7 @@ const GHS_LOCATIONS = [
     id: "kebab-nation",
     name: "Kebab Nation",
     type: "Food",
-    description:
-      "Food outlet",
+    description: "Food outlet",
     latitude: 26.84235,
     longitude: 75.56505,
   },
@@ -280,8 +245,7 @@ const GHS_LOCATIONS = [
     id: "jaipur-bakers",
     name: "Jaipur Bakers",
     type: "Food",
-    description:
-      "Bakery and snacks",
+    description: "Bakery and snacks",
     latitude: 26.8422,
     longitude: 75.5638,
   },
@@ -289,8 +253,7 @@ const GHS_LOCATIONS = [
     id: "lets-go-live",
     name: "Lets Go Live",
     type: "Food",
-    description:
-      "Food and refreshments",
+    description: "Food and refreshments",
     latitude: 26.8422,
     longitude: 75.56355,
   },
@@ -298,22 +261,16 @@ const GHS_LOCATIONS = [
     id: "bluedove-mess",
     name: "Bluedove Mess",
     type: "Mess",
-    description:
-      "Mess facility",
+    description: "Mess facility",
     latitude: 26.84255,
     longitude: 75.56295,
   },
-
-  // ====================================================
-  // SERVICES
-  // ====================================================
 
   {
     id: "best-care-pharmacy",
     name: "Best Care Pharmacy",
     type: "Medical",
-    description:
-      "Pharmacy and medical supplies",
+    description: "Pharmacy and medical supplies",
     latitude: 26.84275,
     longitude: 75.56395,
   },
@@ -321,8 +278,7 @@ const GHS_LOCATIONS = [
     id: "softdodge",
     name: "Softdodge",
     type: "Recreation",
-    description:
-      "Recreation facility",
+    description: "Recreation facility",
     latitude: 26.84335,
     longitude: 75.5637,
   },
@@ -330,8 +286,7 @@ const GHS_LOCATIONS = [
     id: "laundry",
     name: "Laundry",
     type: "Service",
-    description:
-      "Hostel laundry facility",
+    description: "Hostel laundry facility",
     latitude: 26.84185,
     longitude: 75.56275,
   },
@@ -339,70 +294,38 @@ const GHS_LOCATIONS = [
     id: "parking-ghs",
     name: "GHS Parking",
     type: "Parking",
-    description:
-      "Parking area",
+    description: "Parking area",
     latitude: 26.842,
     longitude: 75.56295,
   },
-
-  // ====================================================
-  // RECREATION
-  // ====================================================
-
   {
     id: "moggers-park",
     name: "Moggers Park",
     type: "Recreation",
-    description:
-      "Park and recreation area",
+    description: "Park and recreation area",
     latitude: 26.84185,
     longitude: 75.5644,
   },
 ];
 
 // ======================================================
-// HELPER FUNCTIONS
+// HELPERS
 // ======================================================
 
 const getValidCoordinate = (value) => {
   const number = Number(value);
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+  return Number.isFinite(number) ? number : null;
 };
 
-const normalizeLocation = (
-  location,
-  index
-) => ({
+const normalizeLocation = (location, index) => ({
   ...location,
-
-  id:
-    location.id ??
-    `api-location-${index}`,
-
-  name:
-    location.name ??
-    "Unknown Location",
-
-  type:
-    location.type ??
-    "Service",
-
-  description:
-    location.description ??
-    "",
-
-  latitude:
-    getValidCoordinate(
-      location.latitude
-    ),
-
-  longitude:
-    getValidCoordinate(
-      location.longitude
-    ),
+  id: location.id ?? `api-location-${index}`,
+  name: location.name ?? "Unknown Location",
+  type: location.type ?? "Service",
+  description: location.description ?? "",
+  latitude: getValidCoordinate(location.latitude),
+  longitude: getValidCoordinate(location.longitude),
 });
 
 // ======================================================
@@ -410,86 +333,42 @@ const normalizeLocation = (
 // ======================================================
 
 function App() {
-  // ====================================================
-  // AUTH
-  // ====================================================
-
   const [user, setUser] = useState(null);
 
-  // ====================================================
-  // DATA
-  // ====================================================
+  const [locations, setLocations] = useState([]);
+  const [shuttles, setShuttles] = useState([]);
 
-  const [locations, setLocations] =
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+
+  const [sendingSOS, setSendingSOS] = useState(false);
+
+  const [selectedDestination, setSelectedDestination] =
+    useState(null);
+
+  const [studentLocation, setStudentLocation] =
+    useState(null);
+
+  const [gettingLocation, setGettingLocation] =
+    useState(false);
+
+  const [routeCoordinates, setRouteCoordinates] =
     useState([]);
 
-  const [shuttles, setShuttles] =
-    useState([]);
+  const [routeDistance, setRouteDistance] =
+    useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [routeDuration, setRouteDuration] =
+    useState(null);
 
-  const [error, setError] =
-    useState("");
-
-  // ====================================================
-  // SEARCH / FILTER
-  // ====================================================
-
-  const [search, setSearch] =
-    useState("");
-
-  const [category, setCategory] =
-    useState("All");
-
-  // ====================================================
-  // SOS
-  // ====================================================
-
-  const [sendingSOS, setSendingSOS] =
+  const [loadingRoute, setLoadingRoute] =
     useState(false);
 
   // ====================================================
-  // NAVIGATION
-  // ====================================================
-
-  const [
-    selectedDestination,
-    setSelectedDestination,
-  ] = useState(null);
-
-  const [
-    studentLocation,
-    setStudentLocation,
-  ] = useState(null);
-
-  const [
-    gettingLocation,
-    setGettingLocation,
-  ] = useState(false);
-
-  const [
-    routeCoordinates,
-    setRouteCoordinates,
-  ] = useState([]);
-
-  const [
-    routeDistance,
-    setRouteDistance,
-  ] = useState(null);
-
-  const [
-    routeDuration,
-    setRouteDuration,
-  ] = useState(null);
-
-  const [
-    loadingRoute,
-    setLoadingRoute,
-  ] = useState(false);
-
-  // ====================================================
-  // FETCH INITIAL DATA
+  // INITIAL DATA
   // ====================================================
 
   useEffect(() => {
@@ -503,43 +382,26 @@ function App() {
           locationsResponse,
           shuttlesResponse,
         ] = await Promise.allSettled([
-          axios.get(
-            `${API_BASE_URL}/locations/`,
-            {
-              timeout: 10000,
-            }
-          ),
+          axios.get(`${API_BASE_URL}/locations/`, {
+            timeout: 10000,
+          }),
 
-          axios.get(
-            `${API_BASE_URL}/shuttles/`,
-            {
-              timeout: 10000,
-            }
-          ),
+          axios.get(`${API_BASE_URL}/shuttles/`, {
+            timeout: 10000,
+          }),
         ]);
 
         if (!mounted) return;
 
-        // ==============================================
-        // LOCATIONS
-        // ==============================================
-
         let apiLocations = [];
 
         if (
-          locationsResponse.status ===
-            "fulfilled" &&
-          Array.isArray(
-            locationsResponse.value.data
-          )
+          locationsResponse.status === "fulfilled" &&
+          Array.isArray(locationsResponse.value.data)
         ) {
           apiLocations =
             locationsResponse.value.data.map(
-              (location, index) =>
-                normalizeLocation(
-                  location,
-                  index
-                )
+              normalizeLocation
             );
         }
 
@@ -548,82 +410,44 @@ function App() {
           ...GHS_LOCATIONS,
         ];
 
-        // Remove duplicate names
         const uniqueLocations =
           combinedLocations.filter(
-            (
-              location,
-              index,
-              array
-            ) =>
+            (location, index, array) =>
               index ===
               array.findIndex(
                 (item) =>
-                  String(
-                    item.name || ""
-                  ).toLowerCase() ===
-                  String(
-                    location.name || ""
-                  ).toLowerCase()
+                  String(item.name || "").toLowerCase() ===
+                  String(location.name || "").toLowerCase()
               )
           );
 
-        setLocations(
-          uniqueLocations
-        );
-
-        // ==============================================
-        // SHUTTLES
-        // ==============================================
+        setLocations(uniqueLocations);
 
         if (
-          shuttlesResponse.status ===
-            "fulfilled" &&
-          Array.isArray(
-            shuttlesResponse.value.data
-          )
+          shuttlesResponse.status === "fulfilled" &&
+          Array.isArray(shuttlesResponse.value.data)
         ) {
-          setShuttles(
-            shuttlesResponse.value.data
-          );
+          setShuttles(shuttlesResponse.value.data);
         } else {
           setShuttles([]);
         }
 
-        // ==============================================
-        // ERROR STATE
-        // ==============================================
-
-        const locationsFailed =
-          locationsResponse.status ===
-          "rejected";
-
-        const shuttlesFailed =
-          shuttlesResponse.status ===
-          "rejected";
-
         if (
-          locationsFailed ||
-          shuttlesFailed
+          locationsResponse.status === "rejected" ||
+          shuttlesResponse.status === "rejected"
         ) {
           setError(
-            "Backend unavailable. Showing offline campus locations."
+            "Some backend data is unavailable. Showing available campus data."
           );
         } else {
           setError("");
         }
       } catch (err) {
-        console.error(
-          "API ERROR:",
-          err
-        );
+        console.error("API ERROR:", err);
 
         if (!mounted) return;
 
-        setLocations(
-          GHS_LOCATIONS
-        );
-
+        setLocations(GHS_LOCATIONS);
         setShuttles([]);
 
         setError(
@@ -650,44 +474,36 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    const fetchShuttleUpdates =
-      async () => {
-        try {
-          const response =
-            await axios.get(
-              `${API_BASE_URL}/shuttles/`,
-              {
-                timeout: 10000,
-              }
-            );
-
-          if (
-            mounted &&
-            Array.isArray(
-              response.data
-            )
-          ) {
-            setShuttles(
-              response.data
-            );
+    const fetchShuttleUpdates = async () => {
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/shuttles/`,
+          {
+            timeout: 10000,
           }
-        } catch (err) {
-          console.error(
-            "SHUTTLE UPDATE ERROR:",
-            err
-          );
-        }
-      };
+        );
 
-    // Get latest shuttle positions immediately
+        if (
+          mounted &&
+          Array.isArray(response.data)
+        ) {
+          setShuttles(response.data);
+        }
+      } catch (err) {
+        console.error(
+          "SHUTTLE UPDATE ERROR:",
+          err
+        );
+      }
+    };
+
     fetchShuttleUpdates();
 
-    // Update every 10 seconds
-    const interval =
-      setInterval(
-        fetchShuttleUpdates,
-        10000
-      );
+    // Refresh shuttle coordinates every 5 seconds
+    const interval = setInterval(
+      fetchShuttleUpdates,
+      5000
+    );
 
     return () => {
       mounted = false;
@@ -704,15 +520,13 @@ function App() {
       alert(
         "❌ Geolocation is not supported by your browser."
       );
-
       return;
     }
 
-    const confirmSOS =
-      window.confirm(
-        "🚨 Are you sure you want to send an SOS alert?\n\n" +
-          "Your current location will be shared with campus security."
-      );
+    const confirmSOS = window.confirm(
+      "🚨 Are you sure you want to send an SOS alert?\n\n" +
+        "Your current location will be shared with campus security."
+    );
 
     if (!confirmSOS) return;
 
@@ -720,26 +534,17 @@ function App() {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const latitude =
-          position.coords.latitude;
-
-        const longitude =
-          position.coords.longitude;
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
 
         try {
           await axios.post(
             `${API_BASE_URL}/incidents/`,
             {
-              user_id:
-                user?.id || 1,
-
-              incident_type:
-                "SOS",
-
+              user_id: user?.id || 1,
+              incident_type: "SOS",
               latitude,
-
               longitude,
-
               description:
                 "Student requires emergency assistance",
             },
@@ -753,10 +558,7 @@ function App() {
               "Campus security has received your emergency alert and location."
           );
         } catch (err) {
-          console.error(
-            "SOS ERROR:",
-            err
-          );
+          console.error("SOS ERROR:", err);
 
           alert(
             "❌ SOS could not be sent.\n\n" +
@@ -775,32 +577,23 @@ function App() {
 
         setSendingSOS(false);
 
-        switch (geoError.code) {
-          case 1:
-            alert(
-              "📍 Location permission was denied.\n\n" +
-                "Please allow location access and try again."
-            );
-            break;
-
-          case 2:
-            alert(
-              "📍 Your location could not be determined.\n\n" +
-                "Please try again."
-            );
-            break;
-
-          case 3:
-            alert(
-              "📍 Location request timed out.\n\n" +
-                "Please try again."
-            );
-            break;
-
-          default:
-            alert(
-              "📍 Could not get your location."
-            );
+        if (geoError.code === 1) {
+          alert(
+            "📍 Location permission was denied.\n\n" +
+              "Please allow location access and try again."
+          );
+        } else if (geoError.code === 2) {
+          alert(
+            "📍 Your location could not be determined."
+          );
+        } else if (geoError.code === 3) {
+          alert(
+            "📍 Location request timed out."
+          );
+        } else {
+          alert(
+            "📍 Could not get your location."
+          );
         }
       },
 
@@ -816,48 +609,37 @@ function App() {
   // NAVIGATION
   // ====================================================
 
-  const handleNavigate = (
-    location
-  ) => {
+  const handleNavigate = (location) => {
     if (!navigator.geolocation) {
       alert(
         "Geolocation is not supported by your browser."
       );
-
       return;
     }
 
-    const destinationLat =
-      Number(location.latitude);
+    const destinationLat = Number(
+      location.latitude
+    );
 
-    const destinationLng =
-      Number(location.longitude);
+    const destinationLng = Number(
+      location.longitude
+    );
 
     if (
-      !Number.isFinite(
-        destinationLat
-      ) ||
-      !Number.isFinite(
-        destinationLng
-      )
+      !Number.isFinite(destinationLat) ||
+      !Number.isFinite(destinationLng)
     ) {
       alert(
         "This location does not have valid coordinates."
       );
-
       return;
     }
 
-    setSelectedDestination(
-      location
-    );
-
+    setSelectedDestination(location);
     setGettingLocation(true);
 
     setRouteCoordinates([]);
-
     setRouteDistance(null);
-
     setRouteDuration(null);
 
     navigator.geolocation.getCurrentPosition(
@@ -873,32 +655,23 @@ function App() {
           studentLng,
         ]);
 
-        setGettingLocation(
-          false
-        );
-
+        setGettingLocation(false);
         setLoadingRoute(true);
 
         try {
-          const response =
-            await axios.get(
-              `https://router.project-osrm.org/route/v1/driving/${studentLng},${studentLat};${destinationLng},${destinationLat}`,
-              {
-                params: {
-                  overview:
-                    "full",
-
-                  geometries:
-                    "geojson",
-                },
-
-                timeout: 15000,
-              }
-            );
+          const response = await axios.get(
+            `https://router.project-osrm.org/route/v1/driving/${studentLng},${studentLat};${destinationLng},${destinationLat}`,
+            {
+              params: {
+                overview: "full",
+                geometries: "geojson",
+              },
+              timeout: 15000,
+            }
+          );
 
           const route =
-            response.data
-              ?.routes?.[0];
+            response.data?.routes?.[0];
 
           if (!route) {
             throw new Error(
@@ -908,10 +681,7 @@ function App() {
 
           const coordinates =
             route.geometry?.coordinates?.map(
-              ([
-                longitude,
-                latitude,
-              ]) => [
+              ([longitude, latitude]) => [
                 latitude,
                 longitude,
               ]
@@ -923,17 +693,15 @@ function App() {
 
           setRouteDistance(
             (
-              Number(
-                route.distance
-              ) / 1000
+              Number(route.distance) /
+              1000
             ).toFixed(2)
           );
 
           setRouteDuration(
             Math.ceil(
-              Number(
-                route.duration
-              ) / 60
+              Number(route.duration) /
+                60
             )
           );
         } catch (err) {
@@ -943,14 +711,8 @@ function App() {
           );
 
           setRouteCoordinates([]);
-
-          setRouteDistance(
-            null
-          );
-
-          setRouteDuration(
-            null
-          );
+          setRouteDistance(null);
+          setRouteDuration(null);
 
           alert(
             "Unable to calculate the route. Please try again."
@@ -966,10 +728,7 @@ function App() {
           geoError
         );
 
-        setGettingLocation(
-          false
-        );
-
+        setGettingLocation(false);
         setLoadingRoute(false);
 
         alert(
@@ -990,33 +749,13 @@ function App() {
   // ====================================================
 
   const clearNavigation = () => {
-    setSelectedDestination(
-      null
-    );
-
-    setStudentLocation(
-      null
-    );
-
-    setRouteCoordinates(
-      []
-    );
-
-    setRouteDistance(
-      null
-    );
-
-    setRouteDuration(
-      null
-    );
-
-    setGettingLocation(
-      false
-    );
-
-    setLoadingRoute(
-      false
-    );
+    setSelectedDestination(null);
+    setStudentLocation(null);
+    setRouteCoordinates([]);
+    setRouteDistance(null);
+    setRouteDuration(null);
+    setGettingLocation(false);
+    setLoadingRoute(false);
   };
 
   // ====================================================
@@ -1024,11 +763,7 @@ function App() {
   // ====================================================
 
   if (!user) {
-    return (
-      <Login
-        onLogin={setUser}
-      />
-    );
+    return <Login onLogin={setUser} />;
   }
 
   // ====================================================
@@ -1036,13 +771,10 @@ function App() {
   // ====================================================
 
   if (
-    user.role ===
-      "security" ||
+    user.role === "security" ||
     user.role === "admin"
   ) {
-    return (
-      <SecurityDashboard />
-    );
+    return <SecurityDashboard />;
   }
 
   // ====================================================
@@ -1050,89 +782,60 @@ function App() {
   // ====================================================
 
   const filteredLocations =
-    locations.filter(
-      (location) => {
-        const text =
-          search
-            .toLowerCase()
-            .trim();
+    locations.filter((location) => {
+      const text = search
+        .toLowerCase()
+        .trim();
 
-        const name =
-          String(
-            location.name || ""
-          ).toLowerCase();
+      const name = String(
+        location.name || ""
+      ).toLowerCase();
 
-        const type =
-          String(
-            location.type || ""
-          ).toLowerCase();
+      const type = String(
+        location.type || ""
+      ).toLowerCase();
 
-        const description =
-          String(
-            location.description ||
-              ""
-          ).toLowerCase();
+      const description = String(
+        location.description || ""
+      ).toLowerCase();
 
-        const matchesSearch =
-          !text ||
-          name.includes(text) ||
-          type.includes(text) ||
-          description.includes(
-            text
-          );
+      const matchesSearch =
+        !text ||
+        name.includes(text) ||
+        type.includes(text) ||
+        description.includes(text);
 
-        let matchesCategory =
-          true;
+      let matchesCategory = true;
 
-        if (
-          category ===
-          "Hostels"
-        ) {
-          matchesCategory =
-            location.type ===
-            "Hostel";
-        }
-
-        if (
-          category === "Food"
-        ) {
-          matchesCategory =
-            location.type ===
-              "Food" ||
-            location.type ===
-              "Mess";
-        }
-
-        if (
-          category ===
-          "Services"
-        ) {
-          matchesCategory =
-            location.type ===
-              "Medical" ||
-            location.type ===
-              "Service" ||
-            location.type ===
-              "Shop" ||
-            location.type ===
-              "Parking";
-        }
-
-        if (
-          category ===
-          "Recreation"
-        ) {
-          matchesCategory =
-            location.type ===
-            "Recreation";
-        }
-
-        return (
-          matchesSearch &&
-          matchesCategory
-        );
+      if (category === "Hostels") {
+        matchesCategory =
+          location.type === "Hostel";
       }
-    );
+
+      if (category === "Food") {
+        matchesCategory =
+          location.type === "Food" ||
+          location.type === "Mess";
+      }
+
+      if (category === "Services") {
+        matchesCategory =
+          location.type === "Medical" ||
+          location.type === "Service" ||
+          location.type === "Shop" ||
+          location.type === "Parking";
+      }
+
+      if (category === "Recreation") {
+        matchesCategory =
+          location.type === "Recreation";
+      }
+
+      return (
+        matchesSearch &&
+        matchesCategory
+      );
+    });
 
   // ====================================================
   // MAIN UI
@@ -1149,9 +852,7 @@ function App() {
         color: "#222",
       }}
     >
-      {/* ==================================================
-          HEADER
-      ================================================== */}
+      {/* HEADER */}
 
       <header
         style={{
@@ -1160,11 +861,9 @@ function App() {
           color: "white",
           display: "flex",
           alignItems: "center",
-          justifyContent:
-            "space-between",
+          justifyContent: "space-between",
           padding: "0 25px",
-          boxSizing:
-            "border-box",
+          boxSizing: "border-box",
         }}
       >
         <div>
@@ -1183,18 +882,14 @@ function App() {
               marginTop: "4px",
             }}
           >
-            Navigate. Connect.
-            Stay Safe.
+            Navigate. Connect. Stay Safe.
           </div>
         </div>
 
         <button
-          onClick={() =>
-            setUser(null)
-          }
+          onClick={() => setUser(null)}
           style={{
-            padding:
-              "9px 16px",
+            padding: "9px 16px",
             border: "none",
             borderRadius: "7px",
             background: "#424242",
@@ -1206,9 +901,7 @@ function App() {
         </button>
       </header>
 
-      {/* ==================================================
-          CONTENT
-      ================================================== */}
+      {/* CONTENT */}
 
       <div
         style={{
@@ -1217,9 +910,7 @@ function App() {
           minHeight: 0,
         }}
       >
-        {/* ==================================================
-            SIDEBAR
-        ================================================== */}
+        {/* SIDEBAR */}
 
         <aside
           style={{
@@ -1227,42 +918,30 @@ function App() {
             flexShrink: 0,
             background: "white",
             padding: "15px",
-            boxSizing:
-              "border-box",
+            boxSizing: "border-box",
             overflowY: "auto",
-            borderRight:
-              "1px solid #ddd",
+            borderRight: "1px solid #ddd",
           }}
         >
           {/* USER */}
 
           <div
             style={{
-              background:
-                "#e3f2fd",
+              background: "#e3f2fd",
               padding: "12px",
               borderRadius: "8px",
-              marginBottom:
-                "15px",
+              marginBottom: "15px",
             }}
           >
-            <strong>
-              👤 Logged in
-            </strong>
+            <strong>👤 Logged in</strong>
 
-            <div
-              style={{
-                marginTop: "5px",
-              }}
-            >
+            <div style={{ marginTop: "5px" }}>
               {user.email}
             </div>
 
             <div>
               Role:{" "}
-              <strong>
-                {user.role}
-              </strong>
+              <strong>{user.role}</strong>
             </div>
           </div>
 
@@ -1270,26 +949,19 @@ function App() {
 
           <div
             style={{
-              background:
-                "#ffebee",
-              border:
-                "2px solid #ef5350",
-              borderRadius:
-                "10px",
+              background: "#ffebee",
+              border: "2px solid #ef5350",
+              borderRadius: "10px",
               padding: "15px",
-              marginBottom:
-                "20px",
-              textAlign:
-                "center",
+              marginBottom: "20px",
+              textAlign: "center",
             }}
           >
             <h2
               style={{
-                margin:
-                  "0 0 8px 0",
+                margin: "0 0 8px 0",
                 color: "#c62828",
-                fontSize:
-                  "20px",
+                fontSize: "20px",
               }}
             >
               🚨 Emergency?
@@ -1297,44 +969,32 @@ function App() {
 
             <p
               style={{
-                margin:
-                  "0 0 12px 0",
-                fontSize:
-                  "13px",
+                margin: "0 0 12px 0",
+                fontSize: "13px",
                 color: "#555",
               }}
             >
-              Send your current
-              location to campus
-              security.
+              Send your current location
+              to campus security.
             </p>
 
             <button
-              onClick={
-                handleSOS
-              }
-              disabled={
-                sendingSOS
-              }
+              onClick={handleSOS}
+              disabled={sendingSOS}
               style={{
                 width: "100%",
                 padding: "13px",
-                background:
-                  sendingSOS
-                    ? "#9e9e9e"
-                    : "#d32f2f",
+                background: sendingSOS
+                  ? "#9e9e9e"
+                  : "#d32f2f",
                 color: "white",
                 border: "none",
-                borderRadius:
-                  "8px",
-                fontSize:
-                  "17px",
-                fontWeight:
-                  "bold",
-                cursor:
-                  sendingSOS
-                    ? "not-allowed"
-                    : "pointer",
+                borderRadius: "8px",
+                fontSize: "17px",
+                fontWeight: "bold",
+                cursor: sendingSOS
+                  ? "not-allowed"
+                  : "pointer",
               }}
             >
               {sendingSOS
@@ -1343,76 +1003,57 @@ function App() {
             </button>
           </div>
 
-          {/* ==================================================
-              NAVIGATION
-          ================================================== */}
+          {/* NAVIGATION */}
 
           {selectedDestination && (
             <div
               style={{
-                background:
-                  "#e8f5e9",
-                border:
-                  "1px solid #81c784",
-                borderRadius:
-                  "10px",
+                background: "#e8f5e9",
+                border: "1px solid #81c784",
+                borderRadius: "10px",
                 padding: "12px",
-                marginBottom:
-                  "20px",
+                marginBottom: "20px",
               }}
             >
               <h3
                 style={{
-                  margin:
-                    "0 0 10px 0",
+                  margin: "0 0 10px 0",
                 }}
               >
                 🧭 Navigation
               </h3>
 
-              <p
-                style={{
-                  margin:
-                    "8px 0",
-                }}
-              >
+              <p style={{ margin: "8px 0" }}>
                 Destination:
                 <br />
-
                 <strong>
                   📍{" "}
-                  {
-                    selectedDestination.name
-                  }
+                  {selectedDestination.name}
                 </strong>
               </p>
 
               {gettingLocation && (
                 <p>
-                  📍 Finding your
-                  current location...
+                  📍 Finding your current
+                  location...
                 </p>
               )}
 
               {loadingRoute && (
                 <p>
-                  🧭 Calculating
-                  route...
+                  🧭 Calculating route...
                 </p>
               )}
 
               {studentLocation && (
                 <p
                   style={{
-                    fontSize:
-                      "12px",
-                    marginBottom:
-                      "8px",
+                    fontSize: "12px",
+                    marginBottom: "8px",
                   }}
                 >
                   Your location:
                   <br />
-
                   {studentLocation[0].toFixed(
                     6
                   )}
@@ -1423,74 +1064,53 @@ function App() {
                 </p>
               )}
 
-              {routeDistance !==
-                null &&
-                routeDuration !==
-                  null && (
+              {routeDistance !== null &&
+                routeDuration !== null && (
                   <div
                     style={{
-                      background:
-                        "white",
-                      padding:
-                        "10px",
-                      borderRadius:
-                        "8px",
-                      marginTop:
-                        "10px",
-                      marginBottom:
-                        "10px",
+                      background: "white",
+                      padding: "10px",
+                      borderRadius: "8px",
+                      marginTop: "10px",
+                      marginBottom: "10px",
                     }}
                   >
                     <p
                       style={{
-                        margin:
-                          "4px 0",
+                        margin: "4px 0",
                       }}
                     >
                       📏 Distance:
                       <strong>
                         {" "}
-                        {
-                          routeDistance
-                        }{" "}
-                        km
+                        {routeDistance} km
                       </strong>
                     </p>
 
                     <p
                       style={{
-                        margin:
-                          "4px 0",
+                        margin: "4px 0",
                       }}
                     >
-                      ⏱️ Estimated
-                      time:
+                      ⏱️ Estimated time:
                       <strong>
                         {" "}
-                        {
-                          routeDuration
-                        }{" "}
-                        min
+                        {routeDuration} min
                       </strong>
                     </p>
                   </div>
                 )}
 
               <button
-                onClick={
-                  clearNavigation
-                }
+                onClick={clearNavigation}
                 style={{
                   width: "100%",
                   padding: "9px",
-                  background:
-                    "#616161",
+                  background: "#616161",
                   color: "white",
                   border: "none",
-                  borderRadius:
-                    "7px",
-                  cursor:
-                    "pointer",
+                  borderRadius: "7px",
+                  cursor: "pointer",
                 }}
               >
                 ✖ Clear Navigation
@@ -1498,46 +1118,34 @@ function App() {
             </div>
           )}
 
-          {/* ==================================================
-              SEARCH
-          ================================================== */}
+          {/* SEARCH */}
 
           <input
             type="text"
             placeholder="🔍 Search campus location..."
             value={search}
             onChange={(e) =>
-              setSearch(
-                e.target.value
-              )
+              setSearch(e.target.value)
             }
             style={{
               width: "100%",
               padding: "12px",
-              boxSizing:
-                "border-box",
-              border:
-                "1px solid #ccc",
-              borderRadius:
-                "8px",
-              marginBottom:
-                "15px",
-              fontSize:
-                "14px",
+              boxSizing: "border-box",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              marginBottom: "15px",
+              fontSize: "14px",
             }}
           />
 
-          {/* ==================================================
-              FILTER
-          ================================================== */}
+          {/* FILTER */}
 
           <div
             style={{
               display: "flex",
               gap: "6px",
               flexWrap: "wrap",
-              marginBottom:
-                "20px",
+              marginBottom: "20px",
             }}
           >
             {[
@@ -1546,95 +1154,69 @@ function App() {
               "Food",
               "Services",
               "Recreation",
-            ].map(
-              (item) => (
-                <button
-                  key={item}
-                  onClick={() =>
-                    setCategory(
-                      item
-                    )
-                  }
-                  style={{
-                    padding:
-                      "8px 10px",
-                    border: "none",
-                    borderRadius:
-                      "20px",
-                    background:
-                      category ===
-                      item
-                        ? "#1976d2"
-                        : "#e0e0e0",
-                    color:
-                      category ===
-                      item
-                        ? "white"
-                        : "#333",
-                    cursor:
-                      "pointer",
-                    fontWeight:
-                      "bold",
-                    fontSize:
-                      "12px",
-                  }}
-                >
-                  {item}
-                </button>
-              )
-            )}
+            ].map((item) => (
+              <button
+                key={item}
+                onClick={() =>
+                  setCategory(item)
+                }
+                style={{
+                  padding: "8px 10px",
+                  border: "none",
+                  borderRadius: "20px",
+                  background:
+                    category === item
+                      ? "#1976d2"
+                      : "#e0e0e0",
+                  color:
+                    category === item
+                      ? "white"
+                      : "#333",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "12px",
+                }}
+              >
+                {item}
+              </button>
+            ))}
           </div>
 
           {/* ==================================================
-              SHUTTLES
+              SHUTTLE TRACKING
           ================================================== */}
 
           <div
             style={{
-              background:
-                "#fff3f3",
-              border:
-                "1px solid #ffcdd2",
-              borderRadius:
-                "10px",
+              background: "#fff3f3",
+              border: "1px solid #ffcdd2",
+              borderRadius: "10px",
               padding: "12px",
-              marginBottom:
-                "20px",
+              marginBottom: "20px",
             }}
           >
-            <h2
-              style={{
-                marginTop: 0,
-              }}
-            >
+            <h2 style={{ marginTop: 0 }}>
               🚌 Shuttle Tracking
             </h2>
 
             <div
               style={{
-                fontSize:
-                  "12px",
+                fontSize: "12px",
                 color: "#666",
-                marginBottom:
-                  "10px",
+                marginBottom: "10px",
               }}
             >
-              🔄 Live updates
-              every 10 seconds
+              🔴 Live position updates every
+              5 seconds
             </div>
 
-            {shuttles.length ===
-            0 ? (
+            {shuttles.length === 0 ? (
               <p>
-                No shuttle data
-                available.
+                No shuttle data available.
               </p>
             ) : (
               shuttles.map(
-                (
-                  shuttle,
-                  index
-                ) => (
+                (shuttle, index) => (
                   <div
                     key={
                       shuttle.id ??
@@ -1642,16 +1224,11 @@ function App() {
                       `shuttle-${index}`
                     }
                     style={{
-                      background:
-                        "white",
-                      padding:
-                        "12px",
-                      marginBottom:
-                        "10px",
-                      borderRadius:
-                        "8px",
-                      border:
-                        "1px solid #ddd",
+                      background: "white",
+                      padding: "12px",
+                      marginBottom: "10px",
+                      borderRadius: "8px",
+                      border: "1px solid #ddd",
                     }}
                   >
                     <strong>
@@ -1662,8 +1239,7 @@ function App() {
 
                     <p
                       style={{
-                        margin:
-                          "6px 0",
+                        margin: "6px 0",
                       }}
                     >
                       Driver:{" "}
@@ -1686,60 +1262,43 @@ function App() {
                         : "⚪ INACTIVE"}
                     </strong>
 
-                    {shuttle.latitude !==
-                      undefined &&
-                      shuttle.longitude !==
-                        undefined && (
-                        <p
-                          style={{
-                            fontSize:
-                              "12px",
-                            marginBottom:
-                              0,
-                          }}
-                        >
-                          📍{" "}
-                          {
-                            shuttle.latitude
-                          }
-                          ,{" "}
-                          {
-                            shuttle.longitude
-                          }
-                        </p>
-                      )}
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        marginBottom: 0,
+                      }}
+                    >
+                      📍{" "}
+                      {Number(
+                        shuttle.latitude
+                      ).toFixed(6)}
+                      ,{" "}
+                      {Number(
+                        shuttle.longitude
+                      ).toFixed(6)}
+                    </p>
                   </div>
                 )
               )
             )}
           </div>
 
-          {/* ==================================================
-              LOCATIONS
-          ================================================== */}
+          {/* LOCATIONS */}
 
-          <h2>
-            📍 Campus Locations
-          </h2>
+          <h2>📍 Campus Locations</h2>
 
           {loading && (
-            <p>
-              Loading campus
-              data...
-            </p>
+            <p>Loading campus data...</p>
           )}
 
           {error && (
             <div
               style={{
-                background:
-                  "#fff3cd",
+                background: "#fff3cd",
                 color: "#856404",
                 padding: "12px",
-                borderRadius:
-                  "8px",
-                marginBottom:
-                  "15px",
+                borderRadius: "8px",
+                marginBottom: "15px",
               }}
             >
               ⚠️ {error}
@@ -1749,128 +1308,90 @@ function App() {
           {!loading &&
             filteredLocations.length ===
               0 && (
-              <p>
-                No locations
-                found.
-              </p>
+              <p>No locations found.</p>
             )}
 
           {filteredLocations.map(
-            (
-              location,
-              index
-            ) => {
-              return (
-                <div
-                  key={
-                    location.id ??
-                    `${location.name}-${index}`
-                  }
+            (location, index) => (
+              <div
+                key={
+                  location.id ??
+                  `${location.name}-${index}`
+                }
+                style={{
+                  padding: "12px",
+                  marginBottom: "10px",
+                  border: "1px solid #ddd",
+                  borderRadius: "8px",
+                  background: "#fafafa",
+                }}
+              >
+                <h3
                   style={{
-                    padding:
-                      "12px",
-                    marginBottom:
-                      "10px",
-                    border:
-                      "1px solid #ddd",
-                    borderRadius:
-                      "8px",
-                    background:
-                      "#fafafa",
+                    margin: "0 0 6px 0",
                   }}
                 >
-                  <h3
-                    style={{
-                      margin:
-                        "0 0 6px 0",
-                    }}
-                  >
-                    📍{" "}
-                    {
-                      location.name
-                    }
-                  </h3>
+                  📍 {location.name}
+                </h3>
 
-                  <div>
-                    <strong>
-                      Type:
-                    </strong>{" "}
-                    {
-                      location.type
-                    }
-                  </div>
+                <div>
+                  <strong>Type:</strong>{" "}
+                  {location.type}
+                </div>
 
-                  <p
-                    style={{
-                      margin:
-                        "6px 0",
-                    }}
-                  >
-                    {
-                      location.description
-                    }
-                  </p>
+                <p
+                  style={{
+                    margin: "6px 0",
+                  }}
+                >
+                  {location.description}
+                </p>
 
-                  <small>
-                    {
-                      location.latitude
-                    }
-                    ,{" "}
-                    {
-                      location.longitude
-                    }
-                  </small>
+                <small>
+                  {location.latitude},{" "}
+                  {location.longitude}
+                </small>
 
-                  <button
-                    onClick={() =>
-                      handleNavigate(
-                        location
-                      )
-                    }
-                    disabled={
+                <button
+                  onClick={() =>
+                    handleNavigate(location)
+                  }
+                  disabled={
+                    gettingLocation ||
+                    loadingRoute
+                  }
+                  style={{
+                    width: "100%",
+                    marginTop: "10px",
+                    padding: "10px",
+                    border: "none",
+                    borderRadius: "7px",
+                    background:
                       gettingLocation ||
                       loadingRoute
-                    }
-                    style={{
-                      width: "100%",
-                      marginTop:
-                        "10px",
-                      padding:
-                        "10px",
-                      border: "none",
-                      borderRadius:
-                        "7px",
-                      background:
-                        gettingLocation ||
-                        loadingRoute
-                          ? "#9e9e9e"
-                          : "#1976d2",
-                      color:
-                        "white",
-                      fontWeight:
-                        "bold",
-                      cursor:
-                        gettingLocation ||
-                        loadingRoute
-                          ? "not-allowed"
-                          : "pointer",
-                    }}
-                  >
-                    {gettingLocation
-                      ? "📍 Finding Location..."
-                      : loadingRoute
-                      ? "🧭 Calculating Route..."
-                      : "🧭 Navigate Here"}
-                  </button>
-                </div>
-              );
-            }
+                        ? "#9e9e9e"
+                        : "#1976d2",
+                    color: "white",
+                    fontWeight: "bold",
+                    cursor:
+                      gettingLocation ||
+                      loadingRoute
+                        ? "not-allowed"
+                        : "pointer",
+                  }}
+                >
+                  {gettingLocation
+                    ? "📍 Finding Location..."
+                    : loadingRoute
+                    ? "🧭 Calculating Route..."
+                    : "🧭 Navigate Here"}
+                </button>
+              </div>
+            )
           )}
         </aside>
 
-        {/* ==================================================
-            MAP
-        ================================================== */}
+        {/* MAP */}
 
         <main
           style={{
@@ -1880,10 +1401,7 @@ function App() {
           }}
         >
           <MapContainer
-            center={[
-              26.8438,
-              75.565,
-            ]}
+            center={[26.8438, 75.565]}
             zoom={17}
             style={{
               width: "100%",
@@ -1895,24 +1413,17 @@ function App() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* ==================================================
-                STUDENT LOCATION
-            ================================================== */}
+            {/* STUDENT LOCATION */}
 
             {studentLocation && (
               <Marker
-                position={
-                  studentLocation
-                }
-                icon={
-                  studentIcon
-                }
+                position={studentLocation}
+                icon={studentIcon}
               >
                 <Popup>
                   📍{" "}
                   <strong>
-                    Your Current
-                    Location
+                    Your Current Location
                   </strong>
 
                   {selectedDestination && (
@@ -1920,7 +1431,6 @@ function App() {
                       <br />
                       Navigating to:
                       <br />
-
                       <strong>
                         {
                           selectedDestination.name
@@ -1932,51 +1442,34 @@ function App() {
               </Marker>
             )}
 
-            {/* ==================================================
-                ROUTE
-            ================================================== */}
+            {/* ROUTE */}
 
-            {routeCoordinates.length >
-              0 && (
+            {routeCoordinates.length > 0 && (
               <Polyline
-                positions={
-                  routeCoordinates
-                }
+                positions={routeCoordinates}
                 pathOptions={{
-                  color:
-                    "#1976d2",
+                  color: "#1976d2",
                   weight: 6,
                   opacity: 0.8,
                 }}
               />
             )}
 
-            {/* ==================================================
-                CAMPUS LOCATIONS
-            ================================================== */}
+            {/* CAMPUS LOCATIONS */}
 
             {filteredLocations.map(
-              (
-                location,
-                index
-              ) => {
-                const lat =
-                  Number(
-                    location.latitude
-                  );
+              (location, index) => {
+                const lat = Number(
+                  location.latitude
+                );
 
-                const lng =
-                  Number(
-                    location.longitude
-                  );
+                const lng = Number(
+                  location.longitude
+                );
 
                 if (
-                  !Number.isFinite(
-                    lat
-                  ) ||
-                  !Number.isFinite(
-                    lng
-                  )
+                  !Number.isFinite(lat) ||
+                  !Number.isFinite(lng)
                 ) {
                   return null;
                 }
@@ -1984,33 +1477,24 @@ function App() {
                 return (
                   <Marker
                     key={`location-${location.id ?? index}`}
-                    position={[
-                      lat,
-                      lng,
-                    ]}
+                    position={[lat, lng]}
                     icon={getLocationIcon(
                       location.type
                     )}
                   >
                     <Popup>
                       <strong>
-                        {
-                          location.name
-                        }
+                        {location.name}
                       </strong>
 
                       <br />
 
                       Type:{" "}
-                      {
-                        location.type
-                      }
+                      {location.type}
 
                       <br />
 
-                      {
-                        location.description
-                      }
+                      {location.description}
 
                       <br />
                       <br />
@@ -2026,18 +1510,13 @@ function App() {
                             "8px 12px",
                           background:
                             "#1976d2",
-                          color:
-                            "white",
-                          border:
-                            "none",
-                          borderRadius:
-                            "6px",
-                          cursor:
-                            "pointer",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
                         }}
                       >
-                        🧭 Navigate
-                        Here
+                        🧭 Navigate Here
                       </button>
                     </Popup>
                   </Marker>
@@ -2046,31 +1525,22 @@ function App() {
             )}
 
             {/* ==================================================
-                SHUTTLES
+                LIVE SHUTTLES
             ================================================== */}
 
             {shuttles.map(
-              (
-                shuttle,
-                index
-              ) => {
-                const lat =
-                  Number(
-                    shuttle.latitude
-                  );
+              (shuttle, index) => {
+                const lat = Number(
+                  shuttle.latitude
+                );
 
-                const lng =
-                  Number(
-                    shuttle.longitude
-                  );
+                const lng = Number(
+                  shuttle.longitude
+                );
 
                 if (
-                  !Number.isFinite(
-                    lat
-                  ) ||
-                  !Number.isFinite(
-                    lng
-                  )
+                  !Number.isFinite(lat) ||
+                  !Number.isFinite(lng)
                 ) {
                   return null;
                 }
@@ -2078,13 +1548,8 @@ function App() {
                 return (
                   <Marker
                     key={`shuttle-${shuttle.id ?? index}`}
-                    position={[
-                      lat,
-                      lng,
-                    ]}
-                    icon={
-                      shuttleIcon
-                    }
+                    position={[lat, lng]}
+                    icon={shuttleIcon}
                   >
                     <Popup>
                       <strong>
@@ -2108,13 +1573,9 @@ function App() {
                       <br />
 
                       📍{" "}
-                      {lat.toFixed(
-                        6
-                      )}
+                      {lat.toFixed(6)}
                       ,{" "}
-                      {lng.toFixed(
-                        6
-                      )}
+                      {lng.toFixed(6)}
                     </Popup>
                   </Marker>
                 );
