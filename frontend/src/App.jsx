@@ -1,1668 +1,2130 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-import Login from "./pages/Login"
-import { useEffect, useState } from "react"
-import axios from "axios"
+import Login from "./pages/Login";
+import SecurityDashboard from "./pages/SecurityDashboard";
 
-import "leaflet/dist/leaflet.css"
+import "leaflet/dist/leaflet.css";
+import "./App.css";
 
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
-  useMap
-} from "react-leaflet"
+  Polyline,
+} from "react-leaflet";
 
-import L from "leaflet"
+import L from "leaflet";
 
-import "leaflet-routing-machine"
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css"
-
-import "./App.css"
-
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://127.0.0.1:8000";
 
 // ======================================================
-// LEAFLET DEFAULT ICON
+// LEAFLET DEFAULT MARKER ICON FIX
 // ======================================================
 
-delete L.Icon.Default.prototype._getIconUrl
+delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-
   iconUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-
   shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png"
-})
-
-
-// ======================================================
-// USER LOCATION ICON
-// ======================================================
-
-const userIcon = L.divIcon({
-
-  className: "custom-user-marker",
-
-  html: `
-    <div style="
-      width: 22px;
-      height: 22px;
-      background: #1976d2;
-      border: 4px solid white;
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-    "></div>
-  `,
-
-  iconSize: [22, 22],
-
-  iconAnchor: [11, 11],
-
-  popupAnchor: [0, -11]
-
-})
-
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
 
 // ======================================================
-// ACTIVE SHUTTLE ICON
+// CUSTOM ICON CREATOR
 // ======================================================
 
-const activeShuttleIcon = L.divIcon({
-
-  className: "custom-shuttle-marker",
-
-  html: `
-    <div style="
-      width: 42px;
-      height: 42px;
-      background: #e53935;
-      border: 3px solid white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 23px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.45);
-    ">
-      🚌
-    </div>
-  `,
-
-  iconSize: [42, 42],
-
-  iconAnchor: [21, 21],
-
-  popupAnchor: [0, -21]
-
-})
-
-
-// ======================================================
-// INACTIVE SHUTTLE ICON
-// ======================================================
-
-const inactiveShuttleIcon = L.divIcon({
-
-  className: "custom-shuttle-marker",
-
-  html: `
-    <div style="
-      width: 42px;
-      height: 42px;
-      background: #757575;
-      border: 3px solid white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 23px;
-      opacity: 0.75;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.35);
-    ">
-      🚌
-    </div>
-  `,
-
-  iconSize: [42, 42],
-
-  iconAnchor: [21, 21],
-
-  popupAnchor: [0, -21]
-
-})
-
-
-// ======================================================
-// CAMPUS LOCATION ICON
-// ======================================================
-
-const createLocationIcon = (type) => {
-
-  let emoji = "📍"
-  let background = "#607d8b"
-
-  const t = (type || "").toLowerCase()
-
-
-  if (t.includes("academic")) {
-
-    emoji = "🎓"
-    background = "#2e7d32"
-
-  }
-
-  else if (t.includes("library")) {
-
-    emoji = "📚"
-    background = "#7b1fa2"
-
-  }
-
-  else if (
-    t.includes("food") ||
-    t.includes("cafeteria")
-  ) {
-
-    emoji = "🍴"
-    background = "#ef6c00"
-
-  }
-
-  else if (t.includes("medical")) {
-
-    emoji = "⚕️"
-    background = "#c62828"
-
-  }
-
-  else if (t.includes("hostel")) {
-
-    emoji = "🏠"
-    background = "#f9a825"
-
-  }
-
-  else if (t.includes("sports")) {
-
-    emoji = "⚽"
-    background = "#00838f"
-
-  }
-
-  else if (t.includes("administration")) {
-
-    emoji = "🏢"
-    background = "#424242"
-
-  }
-
-  else if (t.includes("parking")) {
-
-    emoji = "🅿️"
-    background = "#795548"
-
-  }
-
-  else if (t.includes("fitness")) {
-
-    emoji = "🏋️"
-    background = "#1565c0"
-
-  }
-
-
-  return L.divIcon({
-
-    className: "custom-location-marker",
-
+const createIcon = (
+  background,
+  emoji,
+  size = 40
+) =>
+  L.divIcon({
+    className: "",
     html: `
       <div style="
-        width: 38px;
-        height: 38px;
-        background: ${background};
-        border: 3px solid white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 19px;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+        width:${size}px;
+        height:${size}px;
+        background:${background};
+        border:3px solid white;
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:${Math.round(size * 0.52)}px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.4);
+        box-sizing:border-box;
       ">
         ${emoji}
       </div>
     `,
-
-    iconSize: [38, 38],
-
-    iconAnchor: [19, 19],
-
-    popupAnchor: [0, -19]
-
-  })
-
-}
-
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  });
 
 // ======================================================
-// MAP CONTROLLER
+// ICONS
 // ======================================================
 
-function MapController({ location }) {
+const shuttleIcon = createIcon(
+  "#e53935",
+  "🚌",
+  40
+);
 
-  const map = useMap()
+const studentIcon = createIcon(
+  "#2e7d32",
+  "👤",
+  40
+);
 
-  useEffect(() => {
+const getLocationIcon = (type) => {
+  const colors = {
+    Hostel: "#1565c0",
+    Food: "#ef6c00",
+    Mess: "#ef6c00",
+    Shop: "#8e24aa",
+    Medical: "#d32f2f",
+    Service: "#6a1b9a",
+    Parking: "#455a64",
+    Recreation: "#2e7d32",
+  };
 
-    if (!location) {
-      return
-    }
-
-    const latitude = Number(location.latitude)
-    const longitude = Number(location.longitude)
-
-    if (
-      Number.isNaN(latitude) ||
-      Number.isNaN(longitude)
-    ) {
-      return
-    }
-
-    map.flyTo(
-      [latitude, longitude],
-      18,
-      {
-        duration: 1
-      }
-    )
-
-  }, [location, map])
-
-  return null
-}
-
+  return createIcon(
+    colors[type] || "#1976d2",
+    "📍",
+    34
+  );
+};
 
 // ======================================================
-// USER LOCATION CONTROLLER
+// GHS MUJ HOSTEL LOCATIONS
 // ======================================================
 
-function UserLocationController({ location }) {
+const GHS_LOCATIONS = [
+  {
+    id: "ghs-hostel",
+    name: "GHS Hostel",
+    type: "Hostel",
+    description:
+      "Good Host Spaces (GHS) Hostel, MUJ",
+    latitude: 26.8411252,
+    longitude: 75.5626736,
+  },
+  {
+    id: "hostel-b5",
+    name: "Hostel Block B5",
+    type: "Hostel",
+    description:
+      "GHS Boys Hostel Block B5",
+    latitude: 26.84295,
+    longitude: 75.56315,
+  },
+  {
+    id: "b7-boys",
+    name: "B7 Boy's Block",
+    type: "Hostel",
+    description:
+      "GHS Boys Hostel B7 Block",
+    latitude: 26.84335,
+    longitude: 75.56275,
+  },
+  {
+    id: "b6-block",
+    name: "B6 Block",
+    type: "Hostel",
+    description:
+      "GHS Hostel B6 Block",
+    latitude: 26.84365,
+    longitude: 75.56315,
+  },
+  {
+    id: "b5-block",
+    name: "B5 Block",
+    type: "Hostel",
+    description:
+      "GHS Hostel B5 Block",
+    latitude: 26.84315,
+    longitude: 75.56345,
+  },
+  {
+    id: "b2-block",
+    name: "B2 Block",
+    type: "Hostel",
+    description:
+      "GHS Hostel B2 Block",
+    latitude: 26.84365,
+    longitude: 75.56375,
+  },
+  {
+    id: "g1-block",
+    name: "G1 Block",
+    type: "Hostel",
+    description:
+      "GHS Girls Hostel G1 Block",
+    latitude: 26.84205,
+    longitude: 75.56455,
+  },
+  {
+    id: "g2-block",
+    name: "G2 Block",
+    type: "Hostel",
+    description:
+      "GHS Girls Hostel G2 Block",
+    latitude: 26.8422,
+    longitude: 75.56375,
+  },
+  {
+    id: "g3-block",
+    name: "G3 Block",
+    type: "Hostel",
+    description:
+      "GHS Girls Hostel G3 Block",
+    latitude: 26.84205,
+    longitude: 75.5639,
+  },
+  {
+    id: "g4-block",
+    name: "G4 Block",
+    type: "Hostel",
+    description:
+      "GHS Girls Hostel G4 Block",
+    latitude: 26.84245,
+    longitude: 75.56305,
+  },
 
-  const map = useMap()
+  // ====================================================
+  // FOOD
+  // ====================================================
 
-  useEffect(() => {
+  {
+    id: "crazy-chef",
+    name: "Crazy Chef",
+    type: "Food",
+    description:
+      "Food outlet near GHS Hostel",
+    latitude: 26.84315,
+    longitude: 75.56405,
+  },
+  {
+    id: "cafe-dialog",
+    name: "Café Dialog",
+    type: "Food",
+    description:
+      "Café and food outlet",
+    latitude: 26.84295,
+    longitude: 75.56455,
+  },
+  {
+    id: "all-mart",
+    name: "All Mart",
+    type: "Shop",
+    description:
+      "Convenience store near GHS Hostel",
+    latitude: 26.84315,
+    longitude: 75.56445,
+  },
+  {
+    id: "tea-tradition",
+    name: "Tea Tradition",
+    type: "Food",
+    description:
+      "Tea and refreshments",
+    latitude: 26.84255,
+    longitude: 75.5632,
+  },
+  {
+    id: "dev-sweets",
+    name: "Dev Sweets And Snacks",
+    type: "Food",
+    description:
+      "Sweets and snacks",
+    latitude: 26.8424,
+    longitude: 75.56345,
+  },
+  {
+    id: "manipal-mess",
+    name: "Manipal Mess",
+    type: "Mess",
+    description:
+      "Mess facility",
+    latitude: 26.84235,
+    longitude: 75.56275,
+  },
+  {
+    id: "login-cafe",
+    name: "Login Cafe",
+    type: "Food",
+    description:
+      "Cafe and refreshments",
+    latitude: 26.84225,
+    longitude: 75.56475,
+  },
+  {
+    id: "kebab-nation",
+    name: "Kebab Nation",
+    type: "Food",
+    description:
+      "Food outlet",
+    latitude: 26.84235,
+    longitude: 75.56505,
+  },
+  {
+    id: "jaipur-bakers",
+    name: "Jaipur Bakers",
+    type: "Food",
+    description:
+      "Bakery and snacks",
+    latitude: 26.8422,
+    longitude: 75.5638,
+  },
+  {
+    id: "lets-go-live",
+    name: "Lets Go Live",
+    type: "Food",
+    description:
+      "Food and refreshments",
+    latitude: 26.8422,
+    longitude: 75.56355,
+  },
+  {
+    id: "bluedove-mess",
+    name: "Bluedove Mess",
+    type: "Mess",
+    description:
+      "Mess facility",
+    latitude: 26.84255,
+    longitude: 75.56295,
+  },
 
-    if (!location) {
-      return
-    }
+  // ====================================================
+  // SERVICES
+  // ====================================================
 
-    const latitude = Number(location.latitude)
-    const longitude = Number(location.longitude)
+  {
+    id: "best-care-pharmacy",
+    name: "Best Care Pharmacy",
+    type: "Medical",
+    description:
+      "Pharmacy and medical supplies",
+    latitude: 26.84275,
+    longitude: 75.56395,
+  },
+  {
+    id: "softdodge",
+    name: "Softdodge",
+    type: "Recreation",
+    description:
+      "Recreation facility",
+    latitude: 26.84335,
+    longitude: 75.5637,
+  },
+  {
+    id: "laundry",
+    name: "Laundry",
+    type: "Service",
+    description:
+      "Hostel laundry facility",
+    latitude: 26.84185,
+    longitude: 75.56275,
+  },
+  {
+    id: "parking-ghs",
+    name: "GHS Parking",
+    type: "Parking",
+    description:
+      "Parking area",
+    latitude: 26.842,
+    longitude: 75.56295,
+  },
 
-    if (
-      Number.isNaN(latitude) ||
-      Number.isNaN(longitude)
-    ) {
-      return
-    }
+  // ====================================================
+  // RECREATION
+  // ====================================================
 
-    map.flyTo(
-      [latitude, longitude],
-      18,
-      {
-        duration: 1
-      }
-    )
-
-  }, [location, map])
-
-  return null
-}
-
+  {
+    id: "moggers-park",
+    name: "Moggers Park",
+    type: "Recreation",
+    description:
+      "Park and recreation area",
+    latitude: 26.84185,
+    longitude: 75.5644,
+  },
+];
 
 // ======================================================
-// ROUTING CONTROLLER
+// HELPER FUNCTIONS
 // ======================================================
 
-function RoutingControl({
-  userLocation,
-  destination
-}) {
+const getValidCoordinate = (value) => {
+  const number = Number(value);
 
-  const map = useMap()
+  return Number.isFinite(number)
+    ? number
+    : null;
+};
 
-  useEffect(() => {
+const normalizeLocation = (
+  location,
+  index
+) => ({
+  ...location,
 
-    if (
-      !userLocation ||
-      !destination
-    ) {
-      return
-    }
+  id:
+    location.id ??
+    `api-location-${index}`,
 
-    const userLat =
-      Number(userLocation.latitude)
+  name:
+    location.name ??
+    "Unknown Location",
 
-    const userLng =
-      Number(userLocation.longitude)
+  type:
+    location.type ??
+    "Service",
 
-    const destinationLat =
-      Number(destination.latitude)
+  description:
+    location.description ??
+    "",
 
-    const destinationLng =
-      Number(destination.longitude)
+  latitude:
+    getValidCoordinate(
+      location.latitude
+    ),
 
-
-    if (
-      Number.isNaN(userLat) ||
-      Number.isNaN(userLng) ||
-      Number.isNaN(destinationLat) ||
-      Number.isNaN(destinationLng)
-    ) {
-      return
-    }
-
-
-    const routingControl =
-      L.Routing.control({
-
-        waypoints: [
-
-          L.latLng(
-            userLat,
-            userLng
-          ),
-
-          L.latLng(
-            destinationLat,
-            destinationLng
-          )
-
-        ],
-
-        lineOptions: {
-
-          styles: [
-            {
-              color: "#123c69",
-              opacity: 0.8,
-              weight: 6
-            }
-          ]
-
-        },
-
-        show: true,
-
-        addWaypoints: false,
-
-        draggableWaypoints: false,
-
-        fitSelectedRoutes: true,
-
-        routeWhileDragging: false,
-
-        createMarker: () => null
-
-      }).addTo(map)
-
-
-    return () => {
-
-      map.removeControl(
-        routingControl
-      )
-
-    }
-
-  }, [
-    userLocation,
-    destination,
-    map
-  ])
-
-  return null
-}
-
+  longitude:
+    getValidCoordinate(
+      location.longitude
+    ),
+});
 
 // ======================================================
-// MAIN APP
+// APP
 // ======================================================
 
 function App() {
-
-
   // ====================================================
-  // STATES
+  // AUTH
   // ====================================================
 
-  const [user, setUser] =
-    useState(null)
+  const [user, setUser] = useState(null);
+
+  // ====================================================
+  // DATA
+  // ====================================================
 
   const [locations, setLocations] =
-    useState([])
+    useState([]);
 
   const [shuttles, setShuttles] =
-    useState([])
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  // ====================================================
+  // SEARCH / FILTER
+  // ====================================================
 
   const [search, setSearch] =
-    useState("")
+    useState("");
 
-  const [selectedLocation,
-    setSelectedLocation] =
-    useState(null)
-
-  const [selectedShuttle,
-    setSelectedShuttle] =
-    useState(null)
-
-  const [userLocation,
-    setUserLocation] =
-    useState(null)
-
-  const [navigationDestination,
-    setNavigationDestination] =
-    useState(null)
-
-  const [loading,
-    setLoading] =
-    useState(true)
-
-  const [error,
-    setError] =
-    useState("")
-
-  const [sosMessage, setSosMessage] = useState("")
-const [sosLoading, setSosLoading] = useState(false)
-
+  const [category, setCategory] =
+    useState("All");
 
   // ====================================================
-  // GET USER LOCATION
+  // SOS
   // ====================================================
 
-  const getUserLocation = () => {
-
-    if (!navigator.geolocation) {
-
-      alert(
-        "Geolocation is not supported by your browser."
-      )
-
-      return
-    }
-
-
-    navigator.geolocation.getCurrentPosition(
-
-      (position) => {
-
-        setUserLocation({
-
-          latitude:
-            position.coords.latitude,
-
-          longitude:
-            position.coords.longitude
-
-        })
-
-      },
-
-      (error) => {
-
-        console.error(
-          "Location error:",
-          error
-        )
-
-        alert(
-          "Please allow location access in your browser."
-        )
-
-      }
-
-    )
-
-  }
-
+  const [sendingSOS, setSendingSOS] =
+    useState(false);
 
   // ====================================================
-  // FETCH CAMPUS LOCATIONS
+  // NAVIGATION
+  // ====================================================
+
+  const [
+    selectedDestination,
+    setSelectedDestination,
+  ] = useState(null);
+
+  const [
+    studentLocation,
+    setStudentLocation,
+  ] = useState(null);
+
+  const [
+    gettingLocation,
+    setGettingLocation,
+  ] = useState(false);
+
+  const [
+    routeCoordinates,
+    setRouteCoordinates,
+  ] = useState([]);
+
+  const [
+    routeDistance,
+    setRouteDistance,
+  ] = useState(null);
+
+  const [
+    routeDuration,
+    setRouteDuration,
+  ] = useState(null);
+
+  const [
+    loadingRoute,
+    setLoadingRoute,
+  ] = useState(false);
+
+  // ====================================================
+  // FETCH INITIAL DATA
   // ====================================================
 
   useEffect(() => {
+    let mounted = true;
 
-    const fetchLocations = async () => {
+    const fetchData = async () => {
+      setLoading(true);
 
       try {
+        const [
+          locationsResponse,
+          shuttlesResponse,
+        ] = await Promise.allSettled([
+          axios.get(
+            `${API_BASE_URL}/locations/`,
+            {
+              timeout: 10000,
+            }
+          ),
 
-        const response =
-          await axios.get(
-            "http://127.0.0.1:8000/locations/"
+          axios.get(
+            `${API_BASE_URL}/shuttles/`,
+            {
+              timeout: 10000,
+            }
+          ),
+        ]);
+
+        if (!mounted) return;
+
+        // ==============================================
+        // LOCATIONS
+        // ==============================================
+
+        let apiLocations = [];
+
+        if (
+          locationsResponse.status ===
+            "fulfilled" &&
+          Array.isArray(
+            locationsResponse.value.data
           )
+        ) {
+          apiLocations =
+            locationsResponse.value.data.map(
+              (location, index) =>
+                normalizeLocation(
+                  location,
+                  index
+                )
+            );
+        }
 
-        console.log(
-          "Campus locations:",
-          response.data
-        )
+        const combinedLocations = [
+          ...apiLocations,
+          ...GHS_LOCATIONS,
+        ];
+
+        // Remove duplicate names
+        const uniqueLocations =
+          combinedLocations.filter(
+            (
+              location,
+              index,
+              array
+            ) =>
+              index ===
+              array.findIndex(
+                (item) =>
+                  String(
+                    item.name || ""
+                  ).toLowerCase() ===
+                  String(
+                    location.name || ""
+                  ).toLowerCase()
+              )
+          );
 
         setLocations(
-          Array.isArray(response.data)
-            ? response.data
-            : []
-        )
+          uniqueLocations
+        );
 
-      }
+        // ==============================================
+        // SHUTTLES
+        // ==============================================
 
-      catch (err) {
+        if (
+          shuttlesResponse.status ===
+            "fulfilled" &&
+          Array.isArray(
+            shuttlesResponse.value.data
+          )
+        ) {
+          setShuttles(
+            shuttlesResponse.value.data
+          );
+        } else {
+          setShuttles([]);
+        }
 
+        // ==============================================
+        // ERROR STATE
+        // ==============================================
+
+        const locationsFailed =
+          locationsResponse.status ===
+          "rejected";
+
+        const shuttlesFailed =
+          shuttlesResponse.status ===
+          "rejected";
+
+        if (
+          locationsFailed ||
+          shuttlesFailed
+        ) {
+          setError(
+            "Backend unavailable. Showing offline campus locations."
+          );
+        } else {
+          setError("");
+        }
+      } catch (err) {
         console.error(
-          "Could not load campus locations:",
+          "API ERROR:",
           err
-        )
+        );
+
+        if (!mounted) return;
+
+        setLocations(
+          GHS_LOCATIONS
+        );
+
+        setShuttles([]);
 
         setError(
-          "Could not load campus locations."
-        )
-
+          "Backend unavailable. Showing offline campus locations."
+        );
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
+    };
 
-      finally {
+    fetchData();
 
-        setLoading(false)
-
-      }
-
-    }
-
-
-    fetchLocations()
-
-  }, [])
-
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // ====================================================
-  // FETCH SHUTTLES
-  // LIVE EVERY 3 SECONDS
+  // LIVE SHUTTLE TRACKING
   // ====================================================
 
   useEffect(() => {
+    let mounted = true;
 
-    const fetchShuttles = async () => {
+    const fetchShuttleUpdates =
+      async () => {
+        try {
+          const response =
+            await axios.get(
+              `${API_BASE_URL}/shuttles/`,
+              {
+                timeout: 10000,
+              }
+            );
 
-      try {
+          if (
+            mounted &&
+            Array.isArray(
+              response.data
+            )
+          ) {
+            setShuttles(
+              response.data
+            );
+          }
+        } catch (err) {
+          console.error(
+            "SHUTTLE UPDATE ERROR:",
+            err
+          );
+        }
+      };
 
-        const response =
-          await axios.get(
-            "http://127.0.0.1:8000/shuttles/"
-          )
+    // Get latest shuttle positions immediately
+    fetchShuttleUpdates();
 
-        console.log(
-          "Shuttles:",
-          response.data
-        )
-
-        setShuttles(
-          Array.isArray(response.data)
-            ? response.data
-            : []
-        )
-
-      }
-
-      catch (err) {
-
-        console.error(
-          "Could not load shuttles:",
-          err
-        )
-
-      }
-
-    }
-
-
-    fetchShuttles()
-
-
+    // Update every 10 seconds
     const interval =
       setInterval(
-        fetchShuttles,
-        3000
-      )
-
+        fetchShuttleUpdates,
+        10000
+      );
 
     return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
-      clearInterval(interval)
+  // ====================================================
+  // SOS
+  // ====================================================
 
+  const handleSOS = () => {
+    if (!navigator.geolocation) {
+      alert(
+        "❌ Geolocation is not supported by your browser."
+      );
+
+      return;
     }
 
-  }, [])
+    const confirmSOS =
+      window.confirm(
+        "🚨 Are you sure you want to send an SOS alert?\n\n" +
+          "Your current location will be shared with campus security."
+      );
 
+    if (!confirmSOS) return;
+
+    setSendingSOS(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude =
+          position.coords.latitude;
+
+        const longitude =
+          position.coords.longitude;
+
+        try {
+          await axios.post(
+            `${API_BASE_URL}/incidents/`,
+            {
+              user_id:
+                user?.id || 1,
+
+              incident_type:
+                "SOS",
+
+              latitude,
+
+              longitude,
+
+              description:
+                "Student requires emergency assistance",
+            },
+            {
+              timeout: 10000,
+            }
+          );
+
+          alert(
+            "🚨 SOS SENT SUCCESSFULLY!\n\n" +
+              "Campus security has received your emergency alert and location."
+          );
+        } catch (err) {
+          console.error(
+            "SOS ERROR:",
+            err
+          );
+
+          alert(
+            "❌ SOS could not be sent.\n\n" +
+              "Please make sure the FastAPI backend is running."
+          );
+        } finally {
+          setSendingSOS(false);
+        }
+      },
+
+      (geoError) => {
+        console.error(
+          "LOCATION ERROR:",
+          geoError
+        );
+
+        setSendingSOS(false);
+
+        switch (geoError.code) {
+          case 1:
+            alert(
+              "📍 Location permission was denied.\n\n" +
+                "Please allow location access and try again."
+            );
+            break;
+
+          case 2:
+            alert(
+              "📍 Your location could not be determined.\n\n" +
+                "Please try again."
+            );
+            break;
+
+          case 3:
+            alert(
+              "📍 Location request timed out.\n\n" +
+                "Please try again."
+            );
+            break;
+
+          default:
+            alert(
+              "📍 Could not get your location."
+            );
+        }
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
 
   // ====================================================
-  // SEARCH
+  // NAVIGATION
   // ====================================================
 
-  const filteredLocations =
-    locations.filter((location) => {
+  const handleNavigate = (
+    location
+  ) => {
+    if (!navigator.geolocation) {
+      alert(
+        "Geolocation is not supported by your browser."
+      );
 
-      const text =
-        search.toLowerCase().trim()
+      return;
+    }
 
-      return (
+    const destinationLat =
+      Number(location.latitude);
 
-        (location.name || "")
-          .toLowerCase()
-          .includes(text)
+    const destinationLng =
+      Number(location.longitude);
 
-        ||
-
-        (location.type || "")
-          .toLowerCase()
-          .includes(text)
-
+    if (
+      !Number.isFinite(
+        destinationLat
+      ) ||
+      !Number.isFinite(
+        destinationLng
       )
+    ) {
+      alert(
+        "This location does not have valid coordinates."
+      );
 
-    })
+      return;
+    }
 
+    setSelectedDestination(
+      location
+    );
+
+    setGettingLocation(true);
+
+    setRouteCoordinates([]);
+
+    setRouteDistance(null);
+
+    setRouteDuration(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const studentLat =
+          position.coords.latitude;
+
+        const studentLng =
+          position.coords.longitude;
+
+        setStudentLocation([
+          studentLat,
+          studentLng,
+        ]);
+
+        setGettingLocation(
+          false
+        );
+
+        setLoadingRoute(true);
+
+        try {
+          const response =
+            await axios.get(
+              `https://router.project-osrm.org/route/v1/driving/${studentLng},${studentLat};${destinationLng},${destinationLat}`,
+              {
+                params: {
+                  overview:
+                    "full",
+
+                  geometries:
+                    "geojson",
+                },
+
+                timeout: 15000,
+              }
+            );
+
+          const route =
+            response.data
+              ?.routes?.[0];
+
+          if (!route) {
+            throw new Error(
+              "No route found"
+            );
+          }
+
+          const coordinates =
+            route.geometry?.coordinates?.map(
+              ([
+                longitude,
+                latitude,
+              ]) => [
+                latitude,
+                longitude,
+              ]
+            ) || [];
+
+          setRouteCoordinates(
+            coordinates
+          );
+
+          setRouteDistance(
+            (
+              Number(
+                route.distance
+              ) / 1000
+            ).toFixed(2)
+          );
+
+          setRouteDuration(
+            Math.ceil(
+              Number(
+                route.duration
+              ) / 60
+            )
+          );
+        } catch (err) {
+          console.error(
+            "ROUTE ERROR:",
+            err
+          );
+
+          setRouteCoordinates([]);
+
+          setRouteDistance(
+            null
+          );
+
+          setRouteDuration(
+            null
+          );
+
+          alert(
+            "Unable to calculate the route. Please try again."
+          );
+        } finally {
+          setLoadingRoute(false);
+        }
+      },
+
+      (geoError) => {
+        console.error(
+          "LOCATION ERROR:",
+          geoError
+        );
+
+        setGettingLocation(
+          false
+        );
+
+        setLoadingRoute(false);
+
+        alert(
+          "Unable to get your current location. Please allow location access."
+        );
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+  };
+
+  // ====================================================
+  // CLEAR NAVIGATION
+  // ====================================================
+
+  const clearNavigation = () => {
+    setSelectedDestination(
+      null
+    );
+
+    setStudentLocation(
+      null
+    );
+
+    setRouteCoordinates(
+      []
+    );
+
+    setRouteDistance(
+      null
+    );
+
+    setRouteDuration(
+      null
+    );
+
+    setGettingLocation(
+      false
+    );
+
+    setLoadingRoute(
+      false
+    );
+  };
 
   // ====================================================
   // LOGIN
   // ====================================================
-// ====================================================
-// SOS EMERGENCY
-// ====================================================
 
-const sendSOS = async () => {
-
-  if (!userLocation) {
-
-    alert("Please click My Location first.")
-
-    return
-
-  }
-
-  const confirmed = window.confirm(
-    "🚨 Are you sure you want to send an SOS emergency alert?"
-  )
-
-  if (!confirmed) {
-    return
-  }
-
-  setSosLoading(true)
-  setSosMessage("")
-
-  try {
-
-    const response = await axios.post(
-      "http://127.0.0.1:8000/incidents/",
-      {
-        user_id: user.id,
-        incident_type: "SOS",
-        latitude: Number(userLocation.latitude),
-        longitude: Number(userLocation.longitude),
-        description: "Emergency SOS alert from student"
-      }
-    )
-
-    console.log("SOS response:", response.data)
-
-    setSosMessage(
-      "🚨 SOS sent successfully. Security has been notified."
-    )
-
-  } catch (error) {
-
-    console.error("SOS error:", error)
-
-    setSosMessage(
-      "❌ Could not send SOS. Please contact security directly."
-    )
-
-  } finally {
-
-    setSosLoading(false)
-
-  }
-}
   if (!user) {
-
     return (
-
       <Login
         onLogin={setUser}
       />
-
-    )
-
+    );
   }
 
+  // ====================================================
+  // SECURITY / ADMIN
+  // ====================================================
+
+  if (
+    user.role ===
+      "security" ||
+    user.role === "admin"
+  ) {
+    return (
+      <SecurityDashboard />
+    );
+  }
+
+  // ====================================================
+  // FILTER LOCATIONS
+  // ====================================================
+
+  const filteredLocations =
+    locations.filter(
+      (location) => {
+        const text =
+          search
+            .toLowerCase()
+            .trim();
+
+        const name =
+          String(
+            location.name || ""
+          ).toLowerCase();
+
+        const type =
+          String(
+            location.type || ""
+          ).toLowerCase();
+
+        const description =
+          String(
+            location.description ||
+              ""
+          ).toLowerCase();
+
+        const matchesSearch =
+          !text ||
+          name.includes(text) ||
+          type.includes(text) ||
+          description.includes(
+            text
+          );
+
+        let matchesCategory =
+          true;
+
+        if (
+          category ===
+          "Hostels"
+        ) {
+          matchesCategory =
+            location.type ===
+            "Hostel";
+        }
+
+        if (
+          category === "Food"
+        ) {
+          matchesCategory =
+            location.type ===
+              "Food" ||
+            location.type ===
+              "Mess";
+        }
+
+        if (
+          category ===
+          "Services"
+        ) {
+          matchesCategory =
+            location.type ===
+              "Medical" ||
+            location.type ===
+              "Service" ||
+            location.type ===
+              "Shop" ||
+            location.type ===
+              "Parking";
+        }
+
+        if (
+          category ===
+          "Recreation"
+        ) {
+          matchesCategory =
+            location.type ===
+            "Recreation";
+        }
+
+        return (
+          matchesSearch &&
+          matchesCategory
+        );
+      }
+    );
 
   // ====================================================
   // MAIN UI
   // ====================================================
 
   return (
-
-    <div className="app">
-
-
+    <div
+      style={{
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        background: "#f5f5f5",
+        color: "#222",
+      }}
+    >
       {/* ==================================================
           HEADER
       ================================================== */}
 
-      <header className="header">
+      <header
+        style={{
+          minHeight: "75px",
+          background: "#123c69",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+          padding: "0 25px",
+          boxSizing:
+            "border-box",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "24px",
+            }}
+          >
+            🛰️ MUJ SmartCampus
+          </h1>
 
-        <h1>
-          🛰️ MUJ SmartCampus
-        </h1>
+          <div
+            style={{
+              fontSize: "13px",
+              marginTop: "4px",
+            }}
+          >
+            Navigate. Connect.
+            Stay Safe.
+          </div>
+        </div>
 
-        <p>
-          Navigate. Connect. Stay Safe.
-        </p>
-
+        <button
+          onClick={() =>
+            setUser(null)
+          }
+          style={{
+            padding:
+              "9px 16px",
+            border: "none",
+            borderRadius: "7px",
+            background: "#424242",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          🚪 Logout
+        </button>
       </header>
 
+      {/* ==================================================
+          CONTENT
+      ================================================== */}
 
-      <div className="content">
-
-
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          minHeight: 0,
+        }}
+      >
         {/* ==================================================
             SIDEBAR
         ================================================== */}
 
-        <aside className="sidebar">
-
-
-          {/* SEARCH */}
-
-          <input
-
-            className="search-box"
-
-            type="text"
-
-            placeholder="🔍 Search campus location..."
-
-            value={search}
-
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-
-          />
-
-
-          {/* MY LOCATION */}
-
-          <button
-
-            onClick={getUserLocation}
-
-            style={{
-
-              width: "100%",
-
-              padding: "11px",
-
-              marginBottom: "15px",
-
-              border: "none",
-
-              borderRadius: "8px",
-
-              background: "#1976d2",
-
-              color: "white",
-
-              fontSize: "15px",
-
-              cursor: "pointer"
-
-            }}
-
-          >
-
-            🔵 My Location
-
-          </button>
-<button
-  onClick={sendSOS}
-  disabled={sosLoading}
-  style={{
-    width: "100%",
-    padding: "13px",
-    marginBottom: "15px",
-    border: "none",
-    borderRadius: "8px",
-    background: sosLoading ? "#999" : "#d32f2f",
-    color: "white",
-    fontSize: "16px",
-    fontWeight: "bold",
-    cursor: sosLoading ? "not-allowed" : "pointer"
-  }}
->
-  {sosLoading ? "Sending SOS..." : "🚨 SOS Emergency"}
-</button>
-
-{sosMessage && (
-  <p
-    style={{
-      padding: "10px",
-      marginBottom: "15px",
-      borderRadius: "8px",
-      background: "#fff3cd",
-      fontSize: "13px"
-    }}
-  >
-    {sosMessage}
-  </p>
-)}
-
-          {/* ==================================================
-              LEGEND
-          ================================================== */}
+        <aside
+          style={{
+            width: "350px",
+            flexShrink: 0,
+            background: "white",
+            padding: "15px",
+            boxSizing:
+              "border-box",
+            overflowY: "auto",
+            borderRight:
+              "1px solid #ddd",
+          }}
+        >
+          {/* USER */}
 
           <div
             style={{
-
-              padding: "10px",
-
-              marginBottom: "15px",
-
-              background: "#f5f5f5",
-
+              background:
+                "#e3f2fd",
+              padding: "12px",
               borderRadius: "8px",
-
-              fontSize: "14px"
-
+              marginBottom:
+                "15px",
             }}
           >
+            <strong>
+              👤 Logged in
+            </strong>
 
-            <div>
-              🔵 <strong>My Location</strong>
+            <div
+              style={{
+                marginTop: "5px",
+              }}
+            >
+              {user.email}
             </div>
 
             <div>
-              🔴 <strong>Active Shuttle</strong>
+              Role:{" "}
+              <strong>
+                {user.role}
+              </strong>
             </div>
-
-            <div>
-              ⚪ <strong>Inactive Shuttle</strong>
-            </div>
-
-            <div>
-              📍 <strong>Campus Location</strong>
-            </div>
-
           </div>
 
+          {/* SOS */}
+
+          <div
+            style={{
+              background:
+                "#ffebee",
+              border:
+                "2px solid #ef5350",
+              borderRadius:
+                "10px",
+              padding: "15px",
+              marginBottom:
+                "20px",
+              textAlign:
+                "center",
+            }}
+          >
+            <h2
+              style={{
+                margin:
+                  "0 0 8px 0",
+                color: "#c62828",
+                fontSize:
+                  "20px",
+              }}
+            >
+              🚨 Emergency?
+            </h2>
+
+            <p
+              style={{
+                margin:
+                  "0 0 12px 0",
+                fontSize:
+                  "13px",
+                color: "#555",
+              }}
+            >
+              Send your current
+              location to campus
+              security.
+            </p>
+
+            <button
+              onClick={
+                handleSOS
+              }
+              disabled={
+                sendingSOS
+              }
+              style={{
+                width: "100%",
+                padding: "13px",
+                background:
+                  sendingSOS
+                    ? "#9e9e9e"
+                    : "#d32f2f",
+                color: "white",
+                border: "none",
+                borderRadius:
+                  "8px",
+                fontSize:
+                  "17px",
+                fontWeight:
+                  "bold",
+                cursor:
+                  sendingSOS
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {sendingSOS
+                ? "📍 Sending SOS..."
+                : "🚨 SEND SOS"}
+            </button>
+          </div>
 
           {/* ==================================================
-              SHUTTLE TRACKING
+              NAVIGATION
+          ================================================== */}
+
+          {selectedDestination && (
+            <div
+              style={{
+                background:
+                  "#e8f5e9",
+                border:
+                  "1px solid #81c784",
+                borderRadius:
+                  "10px",
+                padding: "12px",
+                marginBottom:
+                  "20px",
+              }}
+            >
+              <h3
+                style={{
+                  margin:
+                    "0 0 10px 0",
+                }}
+              >
+                🧭 Navigation
+              </h3>
+
+              <p
+                style={{
+                  margin:
+                    "8px 0",
+                }}
+              >
+                Destination:
+                <br />
+
+                <strong>
+                  📍{" "}
+                  {
+                    selectedDestination.name
+                  }
+                </strong>
+              </p>
+
+              {gettingLocation && (
+                <p>
+                  📍 Finding your
+                  current location...
+                </p>
+              )}
+
+              {loadingRoute && (
+                <p>
+                  🧭 Calculating
+                  route...
+                </p>
+              )}
+
+              {studentLocation && (
+                <p
+                  style={{
+                    fontSize:
+                      "12px",
+                    marginBottom:
+                      "8px",
+                  }}
+                >
+                  Your location:
+                  <br />
+
+                  {studentLocation[0].toFixed(
+                    6
+                  )}
+                  ,{" "}
+                  {studentLocation[1].toFixed(
+                    6
+                  )}
+                </p>
+              )}
+
+              {routeDistance !==
+                null &&
+                routeDuration !==
+                  null && (
+                  <div
+                    style={{
+                      background:
+                        "white",
+                      padding:
+                        "10px",
+                      borderRadius:
+                        "8px",
+                      marginTop:
+                        "10px",
+                      marginBottom:
+                        "10px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin:
+                          "4px 0",
+                      }}
+                    >
+                      📏 Distance:
+                      <strong>
+                        {" "}
+                        {
+                          routeDistance
+                        }{" "}
+                        km
+                      </strong>
+                    </p>
+
+                    <p
+                      style={{
+                        margin:
+                          "4px 0",
+                      }}
+                    >
+                      ⏱️ Estimated
+                      time:
+                      <strong>
+                        {" "}
+                        {
+                          routeDuration
+                        }{" "}
+                        min
+                      </strong>
+                    </p>
+                  </div>
+                )}
+
+              <button
+                onClick={
+                  clearNavigation
+                }
+                style={{
+                  width: "100%",
+                  padding: "9px",
+                  background:
+                    "#616161",
+                  color: "white",
+                  border: "none",
+                  borderRadius:
+                    "7px",
+                  cursor:
+                    "pointer",
+                }}
+              >
+                ✖ Clear Navigation
+              </button>
+            </div>
+          )}
+
+          {/* ==================================================
+              SEARCH
+          ================================================== */}
+
+          <input
+            type="text"
+            placeholder="🔍 Search campus location..."
+            value={search}
+            onChange={(e) =>
+              setSearch(
+                e.target.value
+              )
+            }
+            style={{
+              width: "100%",
+              padding: "12px",
+              boxSizing:
+                "border-box",
+              border:
+                "1px solid #ccc",
+              borderRadius:
+                "8px",
+              marginBottom:
+                "15px",
+              fontSize:
+                "14px",
+            }}
+          />
+
+          {/* ==================================================
+              FILTER
           ================================================== */}
 
           <div
             style={{
-
-              marginBottom: "20px",
-
-              padding: "12px",
-
-              background: "#fff3f3",
-
-              borderRadius: "10px",
-
-              border: "1px solid #ffcdd2"
-
+              display: "flex",
+              gap: "6px",
+              flexWrap: "wrap",
+              marginBottom:
+                "20px",
             }}
           >
+            {[
+              "All",
+              "Hostels",
+              "Food",
+              "Services",
+              "Recreation",
+            ].map(
+              (item) => (
+                <button
+                  key={item}
+                  onClick={() =>
+                    setCategory(
+                      item
+                    )
+                  }
+                  style={{
+                    padding:
+                      "8px 10px",
+                    border: "none",
+                    borderRadius:
+                      "20px",
+                    background:
+                      category ===
+                      item
+                        ? "#1976d2"
+                        : "#e0e0e0",
+                    color:
+                      category ===
+                      item
+                        ? "white"
+                        : "#333",
+                    cursor:
+                      "pointer",
+                    fontWeight:
+                      "bold",
+                    fontSize:
+                      "12px",
+                  }}
+                >
+                  {item}
+                </button>
+              )
+            )}
+          </div>
 
+          {/* ==================================================
+              SHUTTLES
+          ================================================== */}
+
+          <div
+            style={{
+              background:
+                "#fff3f3",
+              border:
+                "1px solid #ffcdd2",
+              borderRadius:
+                "10px",
+              padding: "12px",
+              marginBottom:
+                "20px",
+            }}
+          >
             <h2
               style={{
                 marginTop: 0,
-                marginBottom: "10px"
               }}
             >
-
               🚌 Shuttle Tracking
-
             </h2>
 
+            <div
+              style={{
+                fontSize:
+                  "12px",
+                color: "#666",
+                marginBottom:
+                  "10px",
+              }}
+            >
+              🔄 Live updates
+              every 10 seconds
+            </div>
 
-            {shuttles.length === 0 ? (
-
+            {shuttles.length ===
+            0 ? (
               <p>
-                No shuttle data available.
+                No shuttle data
+                available.
               </p>
-
             ) : (
-
-              shuttles.map((shuttle) => (
-
-                <div
-
-                  key={shuttle.id}
-
-                  onClick={() => {
-
-                    setSelectedShuttle(
-                      shuttle
-                    )
-
-                    setSelectedLocation(
-                      null
-                    )
-
-                  }}
-
-                  style={{
-
-                    padding: "10px",
-
-                    marginBottom: "8px",
-
-                    background: "white",
-
-                    borderRadius: "8px",
-
-                    cursor: "pointer",
-
-                    border:
-                      shuttle.status === "active"
-                        ? "1px solid #ffcdd2"
-                        : "1px solid #ddd",
-
-                    boxShadow:
-                      "0 1px 4px rgba(0,0,0,0.08)"
-
-                  }}
-
-                >
-
-                  <strong>
-
-                    🚌 {shuttle.vehicle_number}
-
-                  </strong>
-
-
-                  <p
+              shuttles.map(
+                (
+                  shuttle,
+                  index
+                ) => (
+                  <div
+                    key={
+                      shuttle.id ??
+                      shuttle.vehicle_number ??
+                      `shuttle-${index}`
+                    }
                     style={{
-                      margin: "5px 0",
-                      fontSize: "13px"
-                    }}
-                  >
-
-                    Driver:{" "}
-
-                    {shuttle.driver_name ||
-                      "Not assigned"}
-
-                  </p>
-
-
-                  <span
-                    style={{
-
-                      color:
-                        shuttle.status === "active"
-                          ? "#2e7d32"
-                          : "#757575",
-
-                      fontWeight: "bold",
-
-                      fontSize: "13px"
-
-                    }}
-                  >
-
-                    {shuttle.status === "active"
-                      ? "🟢 ACTIVE"
-                      : "⚪ INACTIVE"}
-
-                  </span>
-
-
-                  <br />
-
-
-                  <button
-
-                    onClick={(e) => {
-
-                      e.stopPropagation()
-
-                      setSelectedShuttle(
-                        shuttle
-                      )
-
-                      setSelectedLocation(
-                        null
-                      )
-
-                    }}
-
-                    style={{
-
-                      marginTop: "8px",
-
-                      padding: "7px 10px",
-
-                      border: "none",
-
-                      borderRadius: "6px",
-
                       background:
-                        shuttle.status === "active"
-                          ? "#e53935"
-                          : "#757575",
-
-                      color: "white",
-
-                      cursor: "pointer"
-
+                        "white",
+                      padding:
+                        "12px",
+                      marginBottom:
+                        "10px",
+                      borderRadius:
+                        "8px",
+                      border:
+                        "1px solid #ddd",
                     }}
-
                   >
+                    <strong>
+                      🚌{" "}
+                      {shuttle.vehicle_number ||
+                        "Unknown Shuttle"}
+                    </strong>
 
-                    📍 View on Map
+                    <p
+                      style={{
+                        margin:
+                          "6px 0",
+                      }}
+                    >
+                      Driver:{" "}
+                      {shuttle.driver_name ||
+                        "Not assigned"}
+                    </p>
 
-                  </button>
+                    <strong
+                      style={{
+                        color:
+                          shuttle.status ===
+                          "active"
+                            ? "green"
+                            : "gray",
+                      }}
+                    >
+                      {shuttle.status ===
+                      "active"
+                        ? "🟢 ACTIVE"
+                        : "⚪ INACTIVE"}
+                    </strong>
 
-                </div>
-
-              ))
-
+                    {shuttle.latitude !==
+                      undefined &&
+                      shuttle.longitude !==
+                        undefined && (
+                        <p
+                          style={{
+                            fontSize:
+                              "12px",
+                            marginBottom:
+                              0,
+                          }}
+                        >
+                          📍{" "}
+                          {
+                            shuttle.latitude
+                          }
+                          ,{" "}
+                          {
+                            shuttle.longitude
+                          }
+                        </p>
+                      )}
+                  </div>
+                )
+              )
             )}
-
           </div>
 
-
           {/* ==================================================
-              CAMPUS LOCATIONS
+              LOCATIONS
           ================================================== */}
 
           <h2>
-            Campus Locations
+            📍 Campus Locations
           </h2>
 
-
           {loading && (
-
             <p>
-              Loading...
+              Loading campus
+              data...
             </p>
-
           )}
-
 
           {error && (
-
-            <p>
-              {error}
-            </p>
-
+            <div
+              style={{
+                background:
+                  "#fff3cd",
+                color: "#856404",
+                padding: "12px",
+                borderRadius:
+                  "8px",
+                marginBottom:
+                  "15px",
+              }}
+            >
+              ⚠️ {error}
+            </div>
           )}
 
-
           {!loading &&
-            !error && (
-
-              filteredLocations.length === 0
-
-                ? (
-
-                  <p>
-                    No locations found.
-                  </p>
-
-                )
-
-                : (
-
-                  filteredLocations.map(
-                    (location) => (
-
-                      <div
-
-                        className="location-card"
-
-                        key={location.id}
-
-                        onClick={() => {
-
-                          setSelectedLocation(
-                            location
-                          )
-
-                          setSelectedShuttle(
-                            null
-                          )
-
-                        }}
-
-                      >
-
-                        <h3>
-
-                          📍 {location.name}
-
-                        </h3>
-
-
-                        <p>
-
-                          Type: {location.type}
-
-                        </p>
-
-
-                        <p>
-
-                          {location.description}
-
-                        </p>
-
-
-                        <button
-
-                          onClick={(e) => {
-
-                            e.stopPropagation()
-
-                            if (!userLocation) {
-
-                              alert(
-                                "First click My Location."
-                              )
-
-                              return
-
-                            }
-
-                            setNavigationDestination(
-                              location
-                            )
-
-                          }}
-
-                          style={{
-
-                            marginTop: "8px",
-
-                            padding:
-                              "8px 12px",
-
-                            border: "none",
-
-                            borderRadius:
-                              "6px",
-
-                            background:
-                              "#123c69",
-
-                            color: "white",
-
-                            cursor:
-                              "pointer"
-
-                          }}
-
-                        >
-
-                          🧭 Navigate Here
-
-                        </button>
-
-                      </div>
-
-                    )
-
-                  )
-
-                )
-
+            filteredLocations.length ===
+              0 && (
+              <p>
+                No locations
+                found.
+              </p>
             )}
 
-        </aside>
+          {filteredLocations.map(
+            (
+              location,
+              index
+            ) => {
+              return (
+                <div
+                  key={
+                    location.id ??
+                    `${location.name}-${index}`
+                  }
+                  style={{
+                    padding:
+                      "12px",
+                    marginBottom:
+                      "10px",
+                    border:
+                      "1px solid #ddd",
+                    borderRadius:
+                      "8px",
+                    background:
+                      "#fafafa",
+                  }}
+                >
+                  <h3
+                    style={{
+                      margin:
+                        "0 0 6px 0",
+                    }}
+                  >
+                    📍{" "}
+                    {
+                      location.name
+                    }
+                  </h3>
 
+                  <div>
+                    <strong>
+                      Type:
+                    </strong>{" "}
+                    {
+                      location.type
+                    }
+                  </div>
+
+                  <p
+                    style={{
+                      margin:
+                        "6px 0",
+                    }}
+                  >
+                    {
+                      location.description
+                    }
+                  </p>
+
+                  <small>
+                    {
+                      location.latitude
+                    }
+                    ,{" "}
+                    {
+                      location.longitude
+                    }
+                  </small>
+
+                  <button
+                    onClick={() =>
+                      handleNavigate(
+                        location
+                      )
+                    }
+                    disabled={
+                      gettingLocation ||
+                      loadingRoute
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop:
+                        "10px",
+                      padding:
+                        "10px",
+                      border: "none",
+                      borderRadius:
+                        "7px",
+                      background:
+                        gettingLocation ||
+                        loadingRoute
+                          ? "#9e9e9e"
+                          : "#1976d2",
+                      color:
+                        "white",
+                      fontWeight:
+                        "bold",
+                      cursor:
+                        gettingLocation ||
+                        loadingRoute
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    {gettingLocation
+                      ? "📍 Finding Location..."
+                      : loadingRoute
+                      ? "🧭 Calculating Route..."
+                      : "🧭 Navigate Here"}
+                  </button>
+                </div>
+              );
+            }
+          )}
+        </aside>
 
         {/* ==================================================
             MAP
         ================================================== */}
 
-        <main className="map-area">
-
+        <main
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+          }}
+        >
           <MapContainer
-
             center={[
               26.8438,
-              75.5650
+              75.565,
             ]}
-
             zoom={17}
-
-            className="map"
-
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
           >
-
-
-            {/* ==================================================
-                OPEN STREET MAP
-            ================================================== */}
-
             <TileLayer
-
-              attribution=
-                '&copy; OpenStreetMap contributors'
-
-              url=
-                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-
+              attribution="&copy; OpenStreetMap contributors"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-
 
             {/* ==================================================
-                CONTROLLERS
+                STUDENT LOCATION
             ================================================== */}
 
-            <MapController
-              location={
-                selectedLocation
-              }
-            />
-
-
-            <MapController
-              location={
-                selectedShuttle
-              }
-            />
-
-
-            <UserLocationController
-              location={
-                userLocation
-              }
-            />
-
-
-            {/* ==================================================
-                USER MARKER
-            ================================================== */}
-
-            {userLocation && (
-
+            {studentLocation && (
               <Marker
-
-                position={[
-
-                  Number(
-                    userLocation.latitude
-                  ),
-
-                  Number(
-                    userLocation.longitude
-                  )
-
-                ]}
-
-                icon={userIcon}
-
+                position={
+                  studentLocation
+                }
+                icon={
+                  studentIcon
+                }
               >
-
                 <Popup>
-
-                  🔵 <strong>
-                    You are here
+                  📍{" "}
+                  <strong>
+                    Your Current
+                    Location
                   </strong>
 
+                  {selectedDestination && (
+                    <>
+                      <br />
+                      Navigating to:
+                      <br />
+
+                      <strong>
+                        {
+                          selectedDestination.name
+                        }
+                      </strong>
+                    </>
+                  )}
                 </Popup>
-
               </Marker>
-
             )}
 
+            {/* ==================================================
+                ROUTE
+            ================================================== */}
+
+            {routeCoordinates.length >
+              0 && (
+              <Polyline
+                positions={
+                  routeCoordinates
+                }
+                pathOptions={{
+                  color:
+                    "#1976d2",
+                  weight: 6,
+                  opacity: 0.8,
+                }}
+              />
+            )}
 
             {/* ==================================================
-                CAMPUS LOCATION MARKERS
+                CAMPUS LOCATIONS
             ================================================== */}
 
             {filteredLocations.map(
-              (location) => {
-
-                const latitude =
+              (
+                location,
+                index
+              ) => {
+                const lat =
                   Number(
                     location.latitude
-                  )
+                  );
 
-                const longitude =
+                const lng =
                   Number(
                     location.longitude
-                  )
-
+                  );
 
                 if (
-                  Number.isNaN(latitude) ||
-                  Number.isNaN(longitude)
+                  !Number.isFinite(
+                    lat
+                  ) ||
+                  !Number.isFinite(
+                    lng
+                  )
                 ) {
-
-                  return null
-
+                  return null;
                 }
 
-
                 return (
-
                   <Marker
-
-                    key={location.id}
-
+                    key={`location-${location.id ?? index}`}
                     position={[
-                      latitude,
-                      longitude
+                      lat,
+                      lng,
                     ]}
-
-                    icon={
-                      createLocationIcon(
-                        location.type
-                      )
-                    }
-
+                    icon={getLocationIcon(
+                      location.type
+                    )}
                   >
-
                     <Popup>
-
                       <strong>
-                        {location.name}
+                        {
+                          location.name
+                        }
                       </strong>
 
                       <br />
 
                       Type:{" "}
-                      {location.type}
+                      {
+                        location.type
+                      }
 
                       <br />
 
-                      {location.description}
+                      {
+                        location.description
+                      }
 
                       <br />
                       <br />
 
                       <button
-
-                        onClick={() => {
-
-                          if (!userLocation) {
-
-                            alert(
-                              "First click My Location."
-                            )
-
-                            return
-
-                          }
-
-                          setNavigationDestination(
+                        onClick={() =>
+                          handleNavigate(
                             location
                           )
-
-                        }}
-
+                        }
                         style={{
-
                           padding:
                             "8px 12px",
-
-                          border: "none",
-
+                          background:
+                            "#1976d2",
+                          color:
+                            "white",
+                          border:
+                            "none",
                           borderRadius:
                             "6px",
-
-                          background:
-                            "#123c69",
-
-                          color: "white",
-
                           cursor:
-                            "pointer"
-
+                            "pointer",
                         }}
-
                       >
-
-                        🧭 Navigate Here
-
+                        🧭 Navigate
+                        Here
                       </button>
-
                     </Popup>
-
                   </Marker>
-
-                )
-
+                );
               }
             )}
 
-
             {/* ==================================================
-                SHUTTLE MARKERS
+                SHUTTLES
             ================================================== */}
 
             {shuttles.map(
-              (shuttle) => {
-
-                const latitude =
+              (
+                shuttle,
+                index
+              ) => {
+                const lat =
                   Number(
                     shuttle.latitude
-                  )
+                  );
 
-                const longitude =
+                const lng =
                   Number(
                     shuttle.longitude
-                  )
-
+                  );
 
                 if (
-                  Number.isNaN(latitude) ||
-                  Number.isNaN(longitude)
-                ) {
-
-                  console.error(
-                    "Invalid shuttle coordinates:",
-                    shuttle
+                  !Number.isFinite(
+                    lat
+                  ) ||
+                  !Number.isFinite(
+                    lng
                   )
-
-                  return null
-
+                ) {
+                  return null;
                 }
 
-
                 return (
-
                   <Marker
-
-                    key={shuttle.id}
-
+                    key={`shuttle-${shuttle.id ?? index}`}
                     position={[
-                      latitude,
-                      longitude
+                      lat,
+                      lng,
                     ]}
-
                     icon={
-                      shuttle.status === "active"
-                        ? activeShuttleIcon
-                        : inactiveShuttleIcon
+                      shuttleIcon
                     }
-
-                    eventHandlers={{
-
-                      click: () => {
-
-                        setSelectedShuttle(
-                          shuttle
-                        )
-
-                        setSelectedLocation(
-                          null
-                        )
-
-                      }
-
-                    }}
-
                   >
-
                     <Popup>
-
-                      🚌 <strong>
-
-                        {shuttle.vehicle_number}
-
+                      <strong>
+                        🚌{" "}
+                        {shuttle.vehicle_number ||
+                          "Shuttle"}
                       </strong>
-
 
                       <br />
 
-
                       Driver:{" "}
-
                       {shuttle.driver_name ||
                         "Not assigned"}
 
-
                       <br />
-
 
                       Status:{" "}
-
-                      <strong>
-
-                        {shuttle.status === "active"
-                          ? "🟢 ACTIVE"
-                          : "⚪ INACTIVE"}
-
-                      </strong>
-
+                      {shuttle.status ||
+                        "unknown"}
 
                       <br />
 
-
-                      Latitude:{" "}
-                      {latitude}
-
-
-                      <br />
-
-
-                      Longitude:{" "}
-                      {longitude}
-
-
-                      <br />
-                      <br />
-
-
-                      <button
-
-                        onClick={() => {
-
-                          if (!userLocation) {
-
-                            alert(
-                              "First click My Location."
-                            )
-
-                            return
-
-                          }
-
-
-                          setNavigationDestination({
-
-                            latitude:
-                              latitude,
-
-                            longitude:
-                              longitude
-
-                          })
-
-                        }}
-
-                        style={{
-
-                          padding:
-                            "8px 12px",
-
-                          border: "none",
-
-                          borderRadius:
-                            "6px",
-
-                          background:
-                            shuttle.status === "active"
-                              ? "#e53935"
-                              : "#757575",
-
-                          color: "white",
-
-                          cursor:
-                            "pointer"
-
-                        }}
-
-                      >
-
-                        🧭 Navigate to Shuttle
-
-                      </button>
-
+                      📍{" "}
+                      {lat.toFixed(
+                        6
+                      )}
+                      ,{" "}
+                      {lng.toFixed(
+                        6
+                      )}
                     </Popup>
-
                   </Marker>
-
-                )
-
+                );
               }
             )}
-
-
-            {/* ==================================================
-                ROUTING
-            ================================================== */}
-
-            <RoutingControl
-
-              userLocation={
-                userLocation
-              }
-
-              destination={
-                navigationDestination
-              }
-
-            />
-
           </MapContainer>
-
         </main>
-
       </div>
-
     </div>
-
-  )
-
+  );
 }
 
-
-export default App
+export default App;
