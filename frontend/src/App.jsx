@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import L from "leaflet";
@@ -328,6 +327,43 @@ const normalizeLocation = (location, index) => ({
   longitude: getValidCoordinate(location.longitude),
 });
 
+// Calculate distance between two GPS coordinates
+const calculateDistance = (
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) => {
+  const R = 6371;
+
+  const dLat =
+    ((lat2 - lat1) * Math.PI) / 180;
+
+  const dLon =
+    ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(dLat / 2) *
+      Math.sin(dLat / 2) +
+    Math.cos(
+      (lat1 * Math.PI) / 180
+    ) *
+      Math.cos(
+        (lat2 * Math.PI) / 180
+      ) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c =
+    2 *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    );
+
+  return R * c;
+};
+
 // ======================================================
 // APP
 // ======================================================
@@ -366,6 +402,10 @@ function App() {
 
   const [loadingRoute, setLoadingRoute] =
     useState(false);
+
+  // Nearby facilities
+  const [nearbyLocations, setNearbyLocations] =
+    useState([]);
 
   // ====================================================
   // INITIAL DATA
@@ -499,7 +539,6 @@ function App() {
 
     fetchShuttleUpdates();
 
-    // Refresh shuttle coordinates every 5 seconds
     const interval = setInterval(
       fetchShuttleUpdates,
       5000
@@ -510,6 +549,61 @@ function App() {
       clearInterval(interval);
     };
   }, []);
+
+  // ====================================================
+  // FIND NEARBY FACILITIES
+  // ====================================================
+
+  useEffect(() => {
+    if (
+      !studentLocation ||
+      locations.length === 0
+    ) {
+      setNearbyLocations([]);
+      return;
+    }
+
+    const userLat = studentLocation[0];
+    const userLng = studentLocation[1];
+
+    const nearby = locations
+      .map((location) => {
+        const latitude = Number(
+          location.latitude
+        );
+
+        const longitude = Number(
+          location.longitude
+        );
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude)
+        ) {
+          return null;
+        }
+
+        const distance = calculateDistance(
+          userLat,
+          userLng,
+          latitude,
+          longitude
+        );
+
+        return {
+          ...location,
+          distance,
+        };
+      })
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          a.distance - b.distance
+      )
+      .slice(0, 5);
+
+    setNearbyLocations(nearby);
+  }, [studentLocation, locations]);
 
   // ====================================================
   // SOS
@@ -534,8 +628,11 @@ function App() {
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
+        const latitude =
+          position.coords.latitude;
+
+        const longitude =
+          position.coords.longitude;
 
         try {
           await axios.post(
@@ -558,7 +655,10 @@ function App() {
               "Campus security has received your emergency alert and location."
           );
         } catch (err) {
-          console.error("SOS ERROR:", err);
+          console.error(
+            "SOS ERROR:",
+            err
+          );
 
           alert(
             "❌ SOS could not be sent.\n\n" +
@@ -1118,6 +1218,114 @@ function App() {
             </div>
           )}
 
+          {/* NEARBY FACILITIES */}
+
+          {studentLocation && (
+            <div
+              style={{
+                background: "#f3f8ff",
+                border: "1px solid #bbdefb",
+                borderRadius: "10px",
+                padding: "12px",
+                marginBottom: "20px",
+              }}
+            >
+              <h2
+                style={{
+                  marginTop: 0,
+                  marginBottom: "8px",
+                }}
+              >
+                📍 Nearby Facilities
+              </h2>
+
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "#666",
+                  marginBottom: "12px",
+                }}
+              >
+                Closest places to your current location
+              </div>
+
+              {nearbyLocations.length === 0 ? (
+                <p>
+                  No nearby facilities found.
+                </p>
+              ) : (
+                nearbyLocations.map(
+                  (location) => (
+                    <div
+                      key={location.id}
+                      style={{
+                        background: "white",
+                        padding: "10px",
+                        marginBottom: "8px",
+                        borderRadius: "8px",
+                        border: "1px solid #ddd",
+                      }}
+                    >
+                      <strong>
+                        📍 {location.name}
+                      </strong>
+
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#555",
+                          marginTop: "4px",
+                        }}
+                      >
+                        {location.type}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: "13px",
+                          marginTop: "5px",
+                          fontWeight: "bold",
+                          color: "#1976d2",
+                        }}
+                      >
+                        📏{" "}
+                        {location.distance < 1
+                          ? `${Math.round(
+                              location.distance *
+                                1000
+                            )} m away`
+                          : `${location.distance.toFixed(
+                              2
+                            )} km away`}
+                      </div>
+
+                      <button
+                        onClick={() =>
+                          handleNavigate(
+                            location
+                          )
+                        }
+                        style={{
+                          width: "100%",
+                          marginTop: "8px",
+                          padding: "8px",
+                          background: "#1976d2",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        🧭 Navigate
+                      </button>
+                    </div>
+                  )
+                )
+              )}
+            </div>
+          )}
+
           {/* SEARCH */}
 
           <input
@@ -1182,9 +1390,7 @@ function App() {
             ))}
           </div>
 
-          {/* ==================================================
-              SHUTTLE TRACKING
-          ================================================== */}
+          {/* SHUTTLE TRACKING */}
 
           <div
             style={{
@@ -1476,7 +1682,9 @@ function App() {
 
                 return (
                   <Marker
-                    key={`location-${location.id ?? index}`}
+                    key={`location-${
+                      location.id ?? index
+                    }`}
                     position={[lat, lng]}
                     icon={getLocationIcon(
                       location.type
@@ -1524,9 +1732,7 @@ function App() {
               }
             )}
 
-            {/* ==================================================
-                LIVE SHUTTLES
-            ================================================== */}
+            {/* LIVE SHUTTLES */}
 
             {shuttles.map(
               (shuttle, index) => {
@@ -1547,7 +1753,9 @@ function App() {
 
                 return (
                   <Marker
-                    key={`shuttle-${shuttle.id ?? index}`}
+                    key={`shuttle-${
+                      shuttle.id ?? index
+                    }`}
                     position={[lat, lng]}
                     icon={shuttleIcon}
                   >
