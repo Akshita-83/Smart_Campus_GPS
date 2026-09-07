@@ -29,8 +29,10 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+
   iconUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+
   shadowUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
@@ -69,6 +71,7 @@ const createIcon = (background, emoji, size = 40) =>
 // ======================================================
 
 const shuttleIcon = createIcon("#e53935", "🚌", 40);
+
 const studentIcon = createIcon("#2e7d32", "👤", 40);
 
 const getLocationIcon = (type) => {
@@ -314,20 +317,46 @@ const GHS_LOCATIONS = [
 const getValidCoordinate = (value) => {
   const number = Number(value);
 
-  return Number.isFinite(number) ? number : null;
+  return Number.isFinite(number)
+    ? number
+    : null;
 };
+
 
 const normalizeLocation = (location, index) => ({
   ...location,
-  id: location.id ?? `api-location-${index}`,
-  name: location.name ?? "Unknown Location",
-  type: location.type ?? "Service",
-  description: location.description ?? "",
-  latitude: getValidCoordinate(location.latitude),
-  longitude: getValidCoordinate(location.longitude),
+  id:
+    location.id ??
+    `api-location-${index}`,
+
+  name:
+    location.name ??
+    "Unknown Location",
+
+  type:
+    location.type ??
+    "Service",
+
+  description:
+    location.description ??
+    "",
+
+  latitude:
+    getValidCoordinate(
+      location.latitude
+    ),
+
+  longitude:
+    getValidCoordinate(
+      location.longitude
+    ),
 });
 
-// Calculate distance between two GPS coordinates
+
+// ======================================================
+// DISTANCE CALCULATION
+// ======================================================
+
 const calculateDistance = (
   lat1,
   lon1,
@@ -364,48 +393,89 @@ const calculateDistance = (
   return R * c;
 };
 
+
 // ======================================================
 // APP
 // ======================================================
 
 function App() {
-  const [user, setUser] = useState(null);
-
-  const [locations, setLocations] = useState([]);
-  const [shuttles, setShuttles] = useState([]);
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-
-  const [sendingSOS, setSendingSOS] = useState(false);
-
-  const [selectedDestination, setSelectedDestination] =
+  const [user, setUser] =
     useState(null);
 
-  const [studentLocation, setStudentLocation] =
-    useState(null);
-
-  const [gettingLocation, setGettingLocation] =
-    useState(false);
-
-  const [routeCoordinates, setRouteCoordinates] =
+  const [locations, setLocations] =
     useState([]);
 
-  const [routeDistance, setRouteDistance] =
-    useState(null);
+  const [shuttles, setShuttles] =
+    useState([]);
 
-  const [routeDuration, setRouteDuration] =
-    useState(null);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [loadingRoute, setLoadingRoute] =
+  const [error, setError] =
+    useState("");
+
+  const [search, setSearch] =
+    useState("");
+
+  const [category, setCategory] =
+    useState("All");
+
+  const [sendingSOS, setSendingSOS] =
     useState(false);
 
-  // Nearby facilities
-  const [nearbyLocations, setNearbyLocations] =
-    useState([]);
+  const [
+    selectedDestination,
+    setSelectedDestination,
+  ] = useState(null);
+
+  const [
+    studentLocation,
+    setStudentLocation,
+  ] = useState(null);
+
+  const [
+    gettingLocation,
+    setGettingLocation,
+  ] = useState(false);
+
+  const [
+    routeCoordinates,
+    setRouteCoordinates,
+  ] = useState([]);
+
+  const [
+    routeDistance,
+    setRouteDistance,
+  ] = useState(null);
+
+  const [
+    routeDuration,
+    setRouteDuration,
+  ] = useState(null);
+
+  const [
+    loadingRoute,
+    setLoadingRoute,
+  ] = useState(false);
+
+  // ====================================================
+  // NEARBY FACILITIES
+  // ====================================================
+
+  const [
+    nearbyLocations,
+    setNearbyLocations,
+  ] = useState([]);
+
+  // ====================================================
+  // SHUTTLE ETA
+  // ====================================================
+
+  const [
+    shuttleETAs,
+    setShuttleETAs,
+  ] = useState({});
+
 
   // ====================================================
   // INITIAL DATA
@@ -421,23 +491,33 @@ function App() {
         const [
           locationsResponse,
           shuttlesResponse,
-        ] = await Promise.allSettled([
-          axios.get(`${API_BASE_URL}/locations/`, {
-            timeout: 10000,
-          }),
+        ] =
+          await Promise.allSettled([
+            axios.get(
+              `${API_BASE_URL}/locations/`,
+              {
+                timeout: 10000,
+              }
+            ),
 
-          axios.get(`${API_BASE_URL}/shuttles/`, {
-            timeout: 10000,
-          }),
-        ]);
+            axios.get(
+              `${API_BASE_URL}/shuttles/`,
+              {
+                timeout: 10000,
+              }
+            ),
+          ]);
 
         if (!mounted) return;
 
         let apiLocations = [];
 
         if (
-          locationsResponse.status === "fulfilled" &&
-          Array.isArray(locationsResponse.value.data)
+          locationsResponse.status ===
+            "fulfilled" &&
+          Array.isArray(
+            locationsResponse.value.data
+          )
         ) {
           apiLocations =
             locationsResponse.value.data.map(
@@ -452,29 +532,46 @@ function App() {
 
         const uniqueLocations =
           combinedLocations.filter(
-            (location, index, array) =>
+            (
+              location,
+              index,
+              array
+            ) =>
               index ===
               array.findIndex(
                 (item) =>
-                  String(item.name || "").toLowerCase() ===
-                  String(location.name || "").toLowerCase()
+                  String(
+                    item.name || ""
+                  ).toLowerCase() ===
+                  String(
+                    location.name || ""
+                  ).toLowerCase()
               )
           );
 
-        setLocations(uniqueLocations);
+        setLocations(
+          uniqueLocations
+        );
 
         if (
-          shuttlesResponse.status === "fulfilled" &&
-          Array.isArray(shuttlesResponse.value.data)
+          shuttlesResponse.status ===
+            "fulfilled" &&
+          Array.isArray(
+            shuttlesResponse.value.data
+          )
         ) {
-          setShuttles(shuttlesResponse.value.data);
+          setShuttles(
+            shuttlesResponse.value.data
+          );
         } else {
           setShuttles([]);
         }
 
         if (
-          locationsResponse.status === "rejected" ||
-          shuttlesResponse.status === "rejected"
+          locationsResponse.status ===
+            "rejected" ||
+          shuttlesResponse.status ===
+            "rejected"
         ) {
           setError(
             "Some backend data is unavailable. Showing available campus data."
@@ -483,11 +580,17 @@ function App() {
           setError("");
         }
       } catch (err) {
-        console.error("API ERROR:", err);
+        console.error(
+          "API ERROR:",
+          err
+        );
 
         if (!mounted) return;
 
-        setLocations(GHS_LOCATIONS);
+        setLocations(
+          GHS_LOCATIONS
+        );
+
         setShuttles([]);
 
         setError(
@@ -507,6 +610,7 @@ function App() {
     };
   }, []);
 
+
   // ====================================================
   // LIVE SHUTTLE TRACKING
   // ====================================================
@@ -514,41 +618,137 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    const fetchShuttleUpdates = async () => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/shuttles/`,
-          {
-            timeout: 10000,
-          }
-        );
+    const fetchShuttleUpdates =
+      async () => {
+        try {
+          const response =
+            await axios.get(
+              `${API_BASE_URL}/shuttles/`,
+              {
+                timeout: 10000,
+              }
+            );
 
-        if (
-          mounted &&
-          Array.isArray(response.data)
-        ) {
-          setShuttles(response.data);
+          if (
+            mounted &&
+            Array.isArray(
+              response.data
+            )
+          ) {
+            setShuttles(
+              response.data
+            );
+          }
+        } catch (err) {
+          console.error(
+            "SHUTTLE UPDATE ERROR:",
+            err
+          );
         }
-      } catch (err) {
-        console.error(
-          "SHUTTLE UPDATE ERROR:",
-          err
-        );
-      }
-    };
+      };
 
     fetchShuttleUpdates();
 
-    const interval = setInterval(
-      fetchShuttleUpdates,
-      5000
-    );
+    const interval =
+      setInterval(
+        fetchShuttleUpdates,
+        5000
+      );
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
   }, []);
+
+
+  // ====================================================
+  // SHUTTLE ETA
+  // ====================================================
+
+  useEffect(() => {
+    if (
+      !studentLocation ||
+      shuttles.length === 0
+    ) {
+      setShuttleETAs({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchETAs = async () => {
+      const newETAs = {};
+
+      for (
+        const shuttle of shuttles
+      ) {
+        if (
+          shuttle.id === undefined ||
+          shuttle.id === null
+        ) {
+          continue;
+        }
+
+        try {
+          const response =
+            await axios.get(
+              `${API_BASE_URL}/shuttles/${shuttle.id}/eta`,
+              {
+                params: {
+                  student_latitude:
+                    studentLocation[0],
+
+                  student_longitude:
+                    studentLocation[1],
+                },
+
+                timeout: 10000,
+              }
+            );
+
+          if (
+            response.data
+              ?.eta_minutes !==
+            undefined
+          ) {
+            newETAs[
+              shuttle.id
+            ] = {
+              eta:
+                response.data
+                  .eta_minutes,
+
+              distance:
+                response.data
+                  .distance_km,
+            };
+          }
+        } catch (err) {
+          console.error(
+            `ETA ERROR for shuttle ${shuttle.id}:`,
+            err
+          );
+        }
+      }
+
+      if (!cancelled) {
+        setShuttleETAs(
+          newETAs
+        );
+      }
+    };
+
+    fetchETAs();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    studentLocation,
+    shuttles,
+  ]);
+
 
   // ====================================================
   // FIND NEARBY FACILITIES
@@ -563,47 +763,65 @@ function App() {
       return;
     }
 
-    const userLat = studentLocation[0];
-    const userLng = studentLocation[1];
+    const userLat =
+      studentLocation[0];
 
-    const nearby = locations
-      .map((location) => {
-        const latitude = Number(
-          location.latitude
-        );
+    const userLng =
+      studentLocation[1];
 
-        const longitude = Number(
-          location.longitude
-        );
+    const nearby =
+      locations
+        .map((location) => {
+          const latitude =
+            Number(
+              location.latitude
+            );
 
-        if (
-          !Number.isFinite(latitude) ||
-          !Number.isFinite(longitude)
-        ) {
-          return null;
-        }
+          const longitude =
+            Number(
+              location.longitude
+            );
 
-        const distance = calculateDistance(
-          userLat,
-          userLng,
-          latitude,
-          longitude
-        );
+          if (
+            !Number.isFinite(
+              latitude
+            ) ||
+            !Number.isFinite(
+              longitude
+            )
+          ) {
+            return null;
+          }
 
-        return {
-          ...location,
-          distance,
-        };
-      })
-      .filter(Boolean)
-      .sort(
-        (a, b) =>
-          a.distance - b.distance
-      )
-      .slice(0, 5);
+          const distance =
+            calculateDistance(
+              userLat,
+              userLng,
+              latitude,
+              longitude
+            );
 
-    setNearbyLocations(nearby);
-  }, [studentLocation, locations]);
+          return {
+            ...location,
+            distance,
+          };
+        })
+        .filter(Boolean)
+        .sort(
+          (a, b) =>
+            a.distance -
+            b.distance
+        )
+        .slice(0, 5);
+
+    setNearbyLocations(
+      nearby
+    );
+  }, [
+    studentLocation,
+    locations,
+  ]);
+
 
   // ====================================================
   // SOS
@@ -614,13 +832,15 @@ function App() {
       alert(
         "❌ Geolocation is not supported by your browser."
       );
+
       return;
     }
 
-    const confirmSOS = window.confirm(
-      "🚨 Are you sure you want to send an SOS alert?\n\n" +
-        "Your current location will be shared with campus security."
-    );
+    const confirmSOS =
+      window.confirm(
+        "🚨 Are you sure you want to send an SOS alert?\n\n" +
+          "Your current location will be shared with campus security."
+      );
 
     if (!confirmSOS) return;
 
@@ -638,10 +858,16 @@ function App() {
           await axios.post(
             `${API_BASE_URL}/incidents/`,
             {
-              user_id: user?.id || 1,
-              incident_type: "SOS",
+              user_id:
+                user?.id || 1,
+
+              incident_type:
+                "SOS",
+
               latitude,
+
               longitude,
+
               description:
                 "Student requires emergency assistance",
             },
@@ -677,16 +903,22 @@ function App() {
 
         setSendingSOS(false);
 
-        if (geoError.code === 1) {
+        if (
+          geoError.code === 1
+        ) {
           alert(
             "📍 Location permission was denied.\n\n" +
               "Please allow location access and try again."
           );
-        } else if (geoError.code === 2) {
+        } else if (
+          geoError.code === 2
+        ) {
           alert(
             "📍 Your location could not be determined."
           );
-        } else if (geoError.code === 3) {
+        } else if (
+          geoError.code === 3
+        ) {
           alert(
             "📍 Location request timed out."
           );
@@ -705,166 +937,332 @@ function App() {
     );
   };
 
+
+  // ====================================================
+  // GET STUDENT LOCATION
+  // ====================================================
+
+  const handleGetStudentLocation =
+    () => {
+      if (
+        !navigator.geolocation
+      ) {
+        alert(
+          "❌ Geolocation is not supported by your browser."
+        );
+
+        return;
+      }
+
+      setGettingLocation(true);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const latitude =
+            position.coords.latitude;
+
+          const longitude =
+            position.coords.longitude;
+
+          setStudentLocation([
+            latitude,
+            longitude,
+          ]);
+
+          setGettingLocation(
+            false
+          );
+        },
+
+        (geoError) => {
+          console.error(
+            "LOCATION ERROR:",
+            geoError
+          );
+
+          setGettingLocation(
+            false
+          );
+
+          if (
+            geoError.code === 1
+          ) {
+            alert(
+              "📍 Location permission was denied.\n\n" +
+                "Please allow location access and try again."
+            );
+          } else if (
+            geoError.code === 2
+          ) {
+            alert(
+              "📍 Your location could not be determined."
+            );
+          } else if (
+            geoError.code === 3
+          ) {
+            alert(
+              "📍 Location request timed out."
+            );
+          } else {
+            alert(
+              "📍 Could not get your location."
+            );
+          }
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
+    };
+
+
   // ====================================================
   // NAVIGATION
   // ====================================================
 
-  const handleNavigate = (location) => {
-    if (!navigator.geolocation) {
-      alert(
-        "Geolocation is not supported by your browser."
+  const handleNavigate =
+    (location) => {
+      if (
+        !navigator.geolocation
+      ) {
+        alert(
+          "Geolocation is not supported by your browser."
+        );
+
+        return;
+      }
+
+      const destinationLat =
+        Number(
+          location.latitude
+        );
+
+      const destinationLng =
+        Number(
+          location.longitude
+        );
+
+      if (
+        !Number.isFinite(
+          destinationLat
+        ) ||
+        !Number.isFinite(
+          destinationLng
+        )
+      ) {
+        alert(
+          "This location does not have valid coordinates."
+        );
+
+        return;
+      }
+
+      setSelectedDestination(
+        location
       );
-      return;
-    }
 
-    const destinationLat = Number(
-      location.latitude
-    );
+      setGettingLocation(true);
 
-    const destinationLng = Number(
-      location.longitude
-    );
-
-    if (
-      !Number.isFinite(destinationLat) ||
-      !Number.isFinite(destinationLng)
-    ) {
-      alert(
-        "This location does not have valid coordinates."
+      setRouteCoordinates(
+        []
       );
-      return;
-    }
 
-    setSelectedDestination(location);
-    setGettingLocation(true);
+      setRouteDistance(
+        null
+      );
 
-    setRouteCoordinates([]);
-    setRouteDistance(null);
-    setRouteDuration(null);
+      setRouteDuration(
+        null
+      );
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const studentLat =
-          position.coords.latitude;
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const studentLat =
+            position.coords.latitude;
 
-        const studentLng =
-          position.coords.longitude;
+          const studentLng =
+            position.coords.longitude;
 
-        setStudentLocation([
-          studentLat,
-          studentLng,
-        ]);
+          setStudentLocation([
+            studentLat,
+            studentLng,
+          ]);
 
-        setGettingLocation(false);
-        setLoadingRoute(true);
-
-        try {
-          const response = await axios.get(
-            `https://router.project-osrm.org/route/v1/driving/${studentLng},${studentLat};${destinationLng},${destinationLat}`,
-            {
-              params: {
-                overview: "full",
-                geometries: "geojson",
-              },
-              timeout: 15000,
-            }
+          setGettingLocation(
+            false
           );
 
-          const route =
-            response.data?.routes?.[0];
+          setLoadingRoute(
+            true
+          );
 
-          if (!route) {
-            throw new Error(
-              "No route found"
+          try {
+            const response =
+              await axios.get(
+                `https://router.project-osrm.org/route/v1/driving/${studentLng},${studentLat};${destinationLng},${destinationLat}`,
+                {
+                  params: {
+                    overview:
+                      "full",
+
+                    geometries:
+                      "geojson",
+                  },
+
+                  timeout: 15000,
+                }
+              );
+
+            const route =
+              response.data
+                ?.routes?.[0];
+
+            if (!route) {
+              throw new Error(
+                "No route found"
+              );
+            }
+
+            const coordinates =
+              route.geometry
+                ?.coordinates?.map(
+                  ([
+                    longitude,
+                    latitude,
+                  ]) => [
+                    latitude,
+                    longitude,
+                  ]
+                ) || [];
+
+            setRouteCoordinates(
+              coordinates
+            );
+
+            setRouteDistance(
+              (
+                Number(
+                  route.distance
+                ) / 1000
+              ).toFixed(2)
+            );
+
+            setRouteDuration(
+              Math.ceil(
+                Number(
+                  route.duration
+                ) / 60
+              )
+            );
+          } catch (err) {
+            console.error(
+              "ROUTE ERROR:",
+              err
+            );
+
+            setRouteCoordinates(
+              []
+            );
+
+            setRouteDistance(
+              null
+            );
+
+            setRouteDuration(
+              null
+            );
+
+            alert(
+              "Unable to calculate the route. Please try again."
+            );
+          } finally {
+            setLoadingRoute(
+              false
             );
           }
+        },
 
-          const coordinates =
-            route.geometry?.coordinates?.map(
-              ([longitude, latitude]) => [
-                latitude,
-                longitude,
-              ]
-            ) || [];
-
-          setRouteCoordinates(
-            coordinates
-          );
-
-          setRouteDistance(
-            (
-              Number(route.distance) /
-              1000
-            ).toFixed(2)
-          );
-
-          setRouteDuration(
-            Math.ceil(
-              Number(route.duration) /
-                60
-            )
-          );
-        } catch (err) {
+        (geoError) => {
           console.error(
-            "ROUTE ERROR:",
-            err
+            "LOCATION ERROR:",
+            geoError
           );
 
-          setRouteCoordinates([]);
-          setRouteDistance(null);
-          setRouteDuration(null);
+          setGettingLocation(
+            false
+          );
+
+          setLoadingRoute(
+            false
+          );
 
           alert(
-            "Unable to calculate the route. Please try again."
+            "Unable to get your current location. Please allow location access."
           );
-        } finally {
-          setLoadingRoute(false);
+        },
+
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
         }
-      },
+      );
+    };
 
-      (geoError) => {
-        console.error(
-          "LOCATION ERROR:",
-          geoError
-        );
-
-        setGettingLocation(false);
-        setLoadingRoute(false);
-
-        alert(
-          "Unable to get your current location. Please allow location access."
-        );
-      },
-
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-  };
 
   // ====================================================
   // CLEAR NAVIGATION
   // ====================================================
 
-  const clearNavigation = () => {
-    setSelectedDestination(null);
-    setStudentLocation(null);
-    setRouteCoordinates([]);
-    setRouteDistance(null);
-    setRouteDuration(null);
-    setGettingLocation(false);
-    setLoadingRoute(false);
-  };
+  const clearNavigation =
+    () => {
+      setSelectedDestination(
+        null
+      );
+
+      setStudentLocation(
+        null
+      );
+
+      setRouteCoordinates(
+        []
+      );
+
+      setRouteDistance(
+        null
+      );
+
+      setRouteDuration(
+        null
+      );
+
+      setGettingLocation(
+        false
+      );
+
+      setLoadingRoute(
+        false
+      );
+
+      setShuttleETAs({});
+    };
+
 
   // ====================================================
   // LOGIN
   // ====================================================
 
   if (!user) {
-    return <Login onLogin={setUser} />;
+    return (
+      <Login
+        onLogin={setUser}
+      />
+    );
   }
+
 
   // ====================================================
   // SECURITY / ADMIN
@@ -874,68 +1272,99 @@ function App() {
     user.role === "security" ||
     user.role === "admin"
   ) {
-    return <SecurityDashboard />;
+    return (
+      <SecurityDashboard />
+    );
   }
+
 
   // ====================================================
   // FILTER LOCATIONS
   // ====================================================
 
   const filteredLocations =
-    locations.filter((location) => {
-      const text = search
-        .toLowerCase()
-        .trim();
+    locations.filter(
+      (location) => {
+        const text =
+          search
+            .toLowerCase()
+            .trim();
 
-      const name = String(
-        location.name || ""
-      ).toLowerCase();
+        const name =
+          String(
+            location.name || ""
+          ).toLowerCase();
 
-      const type = String(
-        location.type || ""
-      ).toLowerCase();
+        const type =
+          String(
+            location.type || ""
+          ).toLowerCase();
 
-      const description = String(
-        location.description || ""
-      ).toLowerCase();
+        const description =
+          String(
+            location.description ||
+              ""
+          ).toLowerCase();
 
-      const matchesSearch =
-        !text ||
-        name.includes(text) ||
-        type.includes(text) ||
-        description.includes(text);
+        const matchesSearch =
+          !text ||
+          name.includes(text) ||
+          type.includes(text) ||
+          description.includes(
+            text
+          );
 
-      let matchesCategory = true;
+        let matchesCategory =
+          true;
 
-      if (category === "Hostels") {
-        matchesCategory =
-          location.type === "Hostel";
+        if (
+          category === "Hostels"
+        ) {
+          matchesCategory =
+            location.type ===
+            "Hostel";
+        }
+
+        if (
+          category === "Food"
+        ) {
+          matchesCategory =
+            location.type ===
+              "Food" ||
+            location.type ===
+              "Mess";
+        }
+
+        if (
+          category === "Services"
+        ) {
+          matchesCategory =
+            location.type ===
+              "Medical" ||
+            location.type ===
+              "Service" ||
+            location.type ===
+              "Shop" ||
+            location.type ===
+              "Parking";
+        }
+
+        if (
+          category ===
+          "Recreation"
+        ) {
+          matchesCategory =
+            location.type ===
+            "Recreation";
+        }
+
+        return (
+          matchesSearch &&
+          matchesCategory
+        );
       }
+    );
 
-      if (category === "Food") {
-        matchesCategory =
-          location.type === "Food" ||
-          location.type === "Mess";
-      }
-
-      if (category === "Services") {
-        matchesCategory =
-          location.type === "Medical" ||
-          location.type === "Service" ||
-          location.type === "Shop" ||
-          location.type === "Parking";
-      }
-
-      if (category === "Recreation") {
-        matchesCategory =
-          location.type === "Recreation";
-      }
-
-      return (
-        matchesSearch &&
-        matchesCategory
-      );
-    });
 
   // ====================================================
   // MAIN UI
@@ -952,6 +1381,7 @@ function App() {
         color: "#222",
       }}
     >
+
       {/* HEADER */}
 
       <header
@@ -961,9 +1391,11 @@ function App() {
           color: "white",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent:
+            "space-between",
           padding: "0 25px",
-          boxSizing: "border-box",
+          boxSizing:
+            "border-box",
         }}
       >
         <div>
@@ -987,19 +1419,25 @@ function App() {
         </div>
 
         <button
-          onClick={() => setUser(null)}
+          onClick={() =>
+            setUser(null)
+          }
           style={{
-            padding: "9px 16px",
+            padding:
+              "9px 16px",
             border: "none",
             borderRadius: "7px",
-            background: "#424242",
+            background:
+              "#424242",
             color: "white",
-            cursor: "pointer",
+            cursor:
+              "pointer",
           }}
         >
           🚪 Logout
         </button>
       </header>
+
 
       {/* CONTENT */}
 
@@ -1010,6 +1448,7 @@ function App() {
           minHeight: 0,
         }}
       >
+
         {/* SIDEBAR */}
 
         <aside
@@ -1018,50 +1457,74 @@ function App() {
             flexShrink: 0,
             background: "white",
             padding: "15px",
-            boxSizing: "border-box",
+            boxSizing:
+              "border-box",
             overflowY: "auto",
-            borderRight: "1px solid #ddd",
+            borderRight:
+              "1px solid #ddd",
           }}
         >
+
           {/* USER */}
 
           <div
             style={{
-              background: "#e3f2fd",
+              background:
+                "#e3f2fd",
               padding: "12px",
-              borderRadius: "8px",
-              marginBottom: "15px",
+              borderRadius:
+                "8px",
+              marginBottom:
+                "15px",
             }}
           >
-            <strong>👤 Logged in</strong>
+            <strong>
+              👤 Logged in
+            </strong>
 
-            <div style={{ marginTop: "5px" }}>
+            <div
+              style={{
+                marginTop:
+                  "5px",
+              }}
+            >
               {user.email}
             </div>
 
             <div>
               Role:{" "}
-              <strong>{user.role}</strong>
+              <strong>
+                {user.role}
+              </strong>
             </div>
           </div>
+
 
           {/* SOS */}
 
           <div
             style={{
-              background: "#ffebee",
-              border: "2px solid #ef5350",
-              borderRadius: "10px",
+              background:
+                "#ffebee",
+              border:
+                "2px solid #ef5350",
+              borderRadius:
+                "10px",
               padding: "15px",
-              marginBottom: "20px",
-              textAlign: "center",
+              marginBottom:
+                "15px",
+              textAlign:
+                "center",
             }}
           >
             <h2
               style={{
-                margin: "0 0 8px 0",
-                color: "#c62828",
-                fontSize: "20px",
+                margin:
+                  "0 0 8px 0",
+                color:
+                  "#c62828",
+                fontSize:
+                  "20px",
               }}
             >
               🚨 Emergency?
@@ -1069,32 +1532,47 @@ function App() {
 
             <p
               style={{
-                margin: "0 0 12px 0",
-                fontSize: "13px",
-                color: "#555",
+                margin:
+                  "0 0 12px 0",
+                fontSize:
+                  "13px",
+                color:
+                  "#555",
               }}
             >
-              Send your current location
-              to campus security.
+              Send your current
+              location to campus
+              security.
             </p>
 
             <button
-              onClick={handleSOS}
-              disabled={sendingSOS}
+              onClick={
+                handleSOS
+              }
+              disabled={
+                sendingSOS
+              }
               style={{
                 width: "100%",
-                padding: "13px",
-                background: sendingSOS
-                  ? "#9e9e9e"
-                  : "#d32f2f",
-                color: "white",
+                padding:
+                  "13px",
+                background:
+                  sendingSOS
+                    ? "#9e9e9e"
+                    : "#d32f2f",
+                color:
+                  "white",
                 border: "none",
-                borderRadius: "8px",
-                fontSize: "17px",
-                fontWeight: "bold",
-                cursor: sendingSOS
-                  ? "not-allowed"
-                  : "pointer",
+                borderRadius:
+                  "8px",
+                fontSize:
+                  "17px",
+                fontWeight:
+                  "bold",
+                cursor:
+                  sendingSOS
+                    ? "not-allowed"
+                    : "pointer",
               }}
             >
               {sendingSOS
@@ -1103,57 +1581,180 @@ function App() {
             </button>
           </div>
 
+
+          {/* STUDENT LOCATION */}
+
+          <div
+            style={{
+              background:
+                "#e8f5e9",
+              border:
+                "1px solid #a5d6a7",
+              borderRadius:
+                "10px",
+              padding: "12px",
+              marginBottom:
+                "20px",
+              textAlign:
+                "center",
+            }}
+          >
+            <h2
+              style={{
+                margin:
+                  "0 0 8px 0",
+                fontSize:
+                  "19px",
+                color:
+                  "#2e7d32",
+              }}
+            >
+              📍 Student Location
+            </h2>
+
+            <p
+              style={{
+                fontSize:
+                  "13px",
+                color:
+                  "#555",
+                margin:
+                  "0 0 10px 0",
+              }}
+            >
+              Get your current
+              location to find
+              nearby facilities
+              and shuttle ETA.
+            </p>
+
+            <button
+              onClick={
+                handleGetStudentLocation
+              }
+              disabled={
+                gettingLocation
+              }
+              style={{
+                width: "100%",
+                padding:
+                  "11px",
+                background:
+                  gettingLocation
+                    ? "#9e9e9e"
+                    : "#2e7d32",
+                color:
+                  "white",
+                border: "none",
+                borderRadius:
+                  "7px",
+                fontSize:
+                  "15px",
+                fontWeight:
+                  "bold",
+                cursor:
+                  gettingLocation
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              {gettingLocation
+                ? "📍 Getting Location..."
+                : "📍 Get My Location"}
+            </button>
+
+            {studentLocation && (
+              <div
+                style={{
+                  marginTop:
+                    "10px",
+                  fontSize:
+                    "11px",
+                  color:
+                    "#555",
+                }}
+              >
+                {studentLocation[0].toFixed(
+                  6
+                )}
+                ,{" "}
+                {studentLocation[1].toFixed(
+                  6
+                )}
+              </div>
+            )}
+          </div>
+
+
           {/* NAVIGATION */}
 
           {selectedDestination && (
             <div
               style={{
-                background: "#e8f5e9",
-                border: "1px solid #81c784",
-                borderRadius: "10px",
-                padding: "12px",
-                marginBottom: "20px",
+                background:
+                  "#e8f5e9",
+                border:
+                  "1px solid #81c784",
+                borderRadius:
+                  "10px",
+                padding:
+                  "12px",
+                marginBottom:
+                  "20px",
               }}
             >
               <h3
                 style={{
-                  margin: "0 0 10px 0",
+                  margin:
+                    "0 0 10px 0",
                 }}
               >
                 🧭 Navigation
               </h3>
 
-              <p style={{ margin: "8px 0" }}>
+              <p
+                style={{
+                  margin:
+                    "8px 0",
+                }}
+              >
                 Destination:
                 <br />
+
                 <strong>
                   📍{" "}
-                  {selectedDestination.name}
+                  {
+                    selectedDestination.name
+                  }
                 </strong>
               </p>
 
               {gettingLocation && (
                 <p>
-                  📍 Finding your current
-                  location...
+                  📍 Finding your
+                  current location...
                 </p>
               )}
 
               {loadingRoute && (
                 <p>
-                  🧭 Calculating route...
+                  🧭 Calculating
+                  route...
                 </p>
               )}
 
               {studentLocation && (
                 <p
                   style={{
-                    fontSize: "12px",
-                    marginBottom: "8px",
+                    fontSize:
+                      "12px",
+                    marginBottom:
+                      "8px",
                   }}
                 >
                   Your location:
                   <br />
+
                   {studentLocation[0].toFixed(
                     6
                   )}
@@ -1164,53 +1765,76 @@ function App() {
                 </p>
               )}
 
-              {routeDistance !== null &&
-                routeDuration !== null && (
+              {routeDistance !==
+                null &&
+                routeDuration !==
+                  null && (
                   <div
                     style={{
-                      background: "white",
-                      padding: "10px",
-                      borderRadius: "8px",
-                      marginTop: "10px",
-                      marginBottom: "10px",
+                      background:
+                        "white",
+                      padding:
+                        "10px",
+                      borderRadius:
+                        "8px",
+                      marginTop:
+                        "10px",
+                      marginBottom:
+                        "10px",
                     }}
                   >
                     <p
                       style={{
-                        margin: "4px 0",
+                        margin:
+                          "4px 0",
                       }}
                     >
                       📏 Distance:
                       <strong>
                         {" "}
-                        {routeDistance} km
+                        {
+                          routeDistance
+                        }{" "}
+                        km
                       </strong>
                     </p>
 
                     <p
                       style={{
-                        margin: "4px 0",
+                        margin:
+                          "4px 0",
                       }}
                     >
-                      ⏱️ Estimated time:
+                      ⏱️ Estimated
+                      time:
                       <strong>
                         {" "}
-                        {routeDuration} min
+                        {
+                          routeDuration
+                        }{" "}
+                        min
                       </strong>
                     </p>
                   </div>
                 )}
 
               <button
-                onClick={clearNavigation}
+                onClick={
+                  clearNavigation
+                }
                 style={{
                   width: "100%",
-                  padding: "9px",
-                  background: "#616161",
-                  color: "white",
+                  padding:
+                    "9px",
+                  background:
+                    "#616161",
+                  color:
+                    "white",
                   border: "none",
-                  borderRadius: "7px",
-                  cursor: "pointer",
+                  borderRadius:
+                    "7px",
+                  cursor:
+                    "pointer",
                 }}
               >
                 ✖ Clear Navigation
@@ -1218,22 +1842,29 @@ function App() {
             </div>
           )}
 
+
           {/* NEARBY FACILITIES */}
 
           {studentLocation && (
             <div
               style={{
-                background: "#f3f8ff",
-                border: "1px solid #bbdefb",
-                borderRadius: "10px",
-                padding: "12px",
-                marginBottom: "20px",
+                background:
+                  "#f3f8ff",
+                border:
+                  "1px solid #bbdefb",
+                borderRadius:
+                  "10px",
+                padding:
+                  "12px",
+                marginBottom:
+                  "20px",
               }}
             >
               <h2
                 style={{
                   marginTop: 0,
-                  marginBottom: "8px",
+                  marginBottom:
+                    "8px",
                 }}
               >
                 📍 Nearby Facilities
@@ -1241,55 +1872,83 @@ function App() {
 
               <div
                 style={{
-                  fontSize: "12px",
-                  color: "#666",
-                  marginBottom: "12px",
+                  fontSize:
+                    "12px",
+                  color:
+                    "#666",
+                  marginBottom:
+                    "12px",
                 }}
               >
-                Closest places to your current location
+                Closest places to
+                your current
+                location
               </div>
 
-              {nearbyLocations.length === 0 ? (
+              {nearbyLocations.length ===
+              0 ? (
                 <p>
-                  No nearby facilities found.
+                  No nearby
+                  facilities
+                  found.
                 </p>
               ) : (
                 nearbyLocations.map(
                   (location) => (
                     <div
-                      key={location.id}
+                      key={
+                        location.id
+                      }
                       style={{
-                        background: "white",
-                        padding: "10px",
-                        marginBottom: "8px",
-                        borderRadius: "8px",
-                        border: "1px solid #ddd",
+                        background:
+                          "white",
+                        padding:
+                          "10px",
+                        marginBottom:
+                          "8px",
+                        borderRadius:
+                          "8px",
+                        border:
+                          "1px solid #ddd",
                       }}
                     >
                       <strong>
-                        📍 {location.name}
+                        📍{" "}
+                        {
+                          location.name
+                        }
                       </strong>
 
                       <div
                         style={{
-                          fontSize: "12px",
-                          color: "#555",
-                          marginTop: "4px",
+                          fontSize:
+                            "12px",
+                          color:
+                            "#555",
+                          marginTop:
+                            "4px",
                         }}
                       >
-                        {location.type}
+                        {
+                          location.type
+                        }
                       </div>
 
                       <div
                         style={{
-                          fontSize: "13px",
-                          marginTop: "5px",
-                          fontWeight: "bold",
-                          color: "#1976d2",
+                          fontSize:
+                            "13px",
+                          marginTop:
+                            "5px",
+                          fontWeight:
+                            "bold",
+                          color:
+                            "#1976d2",
                         }}
                       >
                         📏{" "}
-                        {location.distance < 1
+                        {location.distance <
+                        1
                           ? `${Math.round(
                               location.distance *
                                 1000
@@ -1306,15 +1965,24 @@ function App() {
                           )
                         }
                         style={{
-                          width: "100%",
-                          marginTop: "8px",
-                          padding: "8px",
-                          background: "#1976d2",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
-                          fontWeight: "bold",
+                          width:
+                            "100%",
+                          marginTop:
+                            "8px",
+                          padding:
+                            "8px",
+                          background:
+                            "#1976d2",
+                          color:
+                            "white",
+                          border:
+                            "none",
+                          borderRadius:
+                            "6px",
+                          cursor:
+                            "pointer",
+                          fontWeight:
+                            "bold",
                         }}
                       >
                         🧭 Navigate
@@ -1326,6 +1994,7 @@ function App() {
             </div>
           )}
 
+
           {/* SEARCH */}
 
           <input
@@ -1333,27 +2002,39 @@ function App() {
             placeholder="🔍 Search campus location..."
             value={search}
             onChange={(e) =>
-              setSearch(e.target.value)
+              setSearch(
+                e.target.value
+              )
             }
             style={{
               width: "100%",
-              padding: "12px",
-              boxSizing: "border-box",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              marginBottom: "15px",
-              fontSize: "14px",
+              padding:
+                "12px",
+              boxSizing:
+                "border-box",
+              border:
+                "1px solid #ccc",
+              borderRadius:
+                "8px",
+              marginBottom:
+                "15px",
+              fontSize:
+                "14px",
             }}
           />
+
 
           {/* FILTER */}
 
           <div
             style={{
-              display: "flex",
+              display:
+                "flex",
               gap: "6px",
-              flexWrap: "wrap",
-              marginBottom: "20px",
+              flexWrap:
+                "wrap",
+              marginBottom:
+                "20px",
             }}
           >
             {[
@@ -1362,149 +2043,310 @@ function App() {
               "Food",
               "Services",
               "Recreation",
-            ].map((item) => (
-              <button
-                key={item}
-                onClick={() =>
-                  setCategory(item)
-                }
-                style={{
-                  padding: "8px 10px",
-                  border: "none",
-                  borderRadius: "20px",
-                  background:
-                    category === item
-                      ? "#1976d2"
-                      : "#e0e0e0",
-                  color:
-                    category === item
-                      ? "white"
-                      : "#333",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "12px",
-                }}
-              >
-                {item}
-              </button>
-            ))}
+            ].map(
+              (item) => (
+                <button
+                  key={item}
+                  onClick={() =>
+                    setCategory(
+                      item
+                    )
+                  }
+                  style={{
+                    padding:
+                      "8px 10px",
+                    border:
+                      "none",
+                    borderRadius:
+                      "20px",
+                    background:
+                      category ===
+                      item
+                        ? "#1976d2"
+                        : "#e0e0e0",
+                    color:
+                      category ===
+                      item
+                        ? "white"
+                        : "#333",
+                    cursor:
+                      "pointer",
+                    fontWeight:
+                      "bold",
+                    fontSize:
+                      "12px",
+                  }}
+                >
+                  {item}
+                </button>
+              )
+            )}
           </div>
+
 
           {/* SHUTTLE TRACKING */}
 
           <div
             style={{
-              background: "#fff3f3",
-              border: "1px solid #ffcdd2",
-              borderRadius: "10px",
-              padding: "12px",
-              marginBottom: "20px",
+              background:
+                "#fff3f3",
+              border:
+                "1px solid #ffcdd2",
+              borderRadius:
+                "10px",
+              padding:
+                "12px",
+              marginBottom:
+                "20px",
             }}
           >
-            <h2 style={{ marginTop: 0 }}>
+            <h2
+              style={{
+                marginTop: 0,
+              }}
+            >
               🚌 Shuttle Tracking
             </h2>
 
             <div
               style={{
-                fontSize: "12px",
-                color: "#666",
-                marginBottom: "10px",
+                fontSize:
+                  "12px",
+                color:
+                  "#666",
+                marginBottom:
+                  "10px",
               }}
             >
-              🔴 Live position updates every
+              🔴 Live position
+              updates every
               5 seconds
             </div>
 
-            {shuttles.length === 0 ? (
+            {shuttles.length ===
+            0 ? (
               <p>
-                No shuttle data available.
+                No shuttle data
+                available.
               </p>
             ) : (
               shuttles.map(
-                (shuttle, index) => (
-                  <div
-                    key={
-                      shuttle.id ??
-                      shuttle.vehicle_number ??
-                      `shuttle-${index}`
-                    }
-                    style={{
-                      background: "white",
-                      padding: "12px",
-                      marginBottom: "10px",
-                      borderRadius: "8px",
-                      border: "1px solid #ddd",
-                    }}
-                  >
-                    <strong>
-                      🚌{" "}
-                      {shuttle.vehicle_number ||
-                        "Unknown Shuttle"}
-                    </strong>
+                (
+                  shuttle,
+                  index
+                ) => {
+                  const etaData =
+                    shuttleETAs[
+                      shuttle.id
+                    ];
 
-                    <p
+                  return (
+                    <div
+                      key={
+                        shuttle.id ??
+                        shuttle.vehicle_number ??
+                        `shuttle-${index}`
+                      }
                       style={{
-                        margin: "6px 0",
+                        background:
+                          "white",
+                        padding:
+                          "12px",
+                        marginBottom:
+                          "10px",
+                        borderRadius:
+                          "8px",
+                        border:
+                          "1px solid #ddd",
                       }}
                     >
-                      Driver:{" "}
-                      {shuttle.driver_name ||
-                        "Not assigned"}
-                    </p>
+                      <strong>
+                        🚌{" "}
+                        {shuttle.vehicle_number ||
+                          "Unknown Shuttle"}
+                      </strong>
 
-                    <strong
-                      style={{
-                        color:
-                          shuttle.status ===
-                          "active"
-                            ? "green"
-                            : "gray",
-                      }}
-                    >
-                      {shuttle.status ===
-                      "active"
-                        ? "🟢 ACTIVE"
-                        : "⚪ INACTIVE"}
-                    </strong>
+                      <p
+                        style={{
+                          margin:
+                            "6px 0",
+                        }}
+                      >
+                        Driver:{" "}
+                        {shuttle.driver_name ||
+                          "Not assigned"}
+                      </p>
 
-                    <p
-                      style={{
-                        fontSize: "12px",
-                        marginBottom: 0,
-                      }}
-                    >
-                      📍{" "}
-                      {Number(
-                        shuttle.latitude
-                      ).toFixed(6)}
-                      ,{" "}
-                      {Number(
-                        shuttle.longitude
-                      ).toFixed(6)}
-                    </p>
-                  </div>
-                )
+                      <strong
+                        style={{
+                          color:
+                            shuttle.status ===
+                            "active"
+                              ? "green"
+                              : "gray",
+                        }}
+                      >
+                        {shuttle.status ===
+                        "active"
+                          ? "🟢 ACTIVE"
+                          : "⚪ INACTIVE"}
+                      </strong>
+
+                      <p
+                        style={{
+                          fontSize:
+                            "12px",
+                          marginBottom:
+                            "5px",
+                        }}
+                      >
+                        📍{" "}
+                        {Number(
+                          shuttle.latitude
+                        ).toFixed(
+                          6
+                        )}
+                        ,{" "}
+                        {Number(
+                          shuttle.longitude
+                        ).toFixed(
+                          6
+                        )}
+                      </p>
+
+                      {/* ETA */}
+
+                      {studentLocation &&
+                        shuttle.status ===
+                          "active" && (
+                          <div
+                            style={{
+                              marginTop:
+                                "8px",
+                              padding:
+                                "9px",
+                              background:
+                                "#e3f2fd",
+                              borderRadius:
+                                "7px",
+                              border:
+                                "1px solid #90caf9",
+                            }}
+                          >
+                            <strong
+                              style={{
+                                color:
+                                  "#1565c0",
+                              }}
+                            >
+                              ⏱️ Shuttle ETA
+                            </strong>
+
+                            {etaData ? (
+                              <>
+                                <div
+                                  style={{
+                                    marginTop:
+                                      "5px",
+                                    fontSize:
+                                      "16px",
+                                    fontWeight:
+                                      "bold",
+                                    color:
+                                      "#1565c0",
+                                  }}
+                                >
+                                  ~{" "}
+                                  {
+                                    etaData.eta
+                                  }{" "}
+                                  min
+                                </div>
+
+                                <div
+                                  style={{
+                                    fontSize:
+                                      "12px",
+                                    color:
+                                      "#555",
+                                  }}
+                                >
+                                  📏{" "}
+                                  {
+                                    etaData.distance
+                                  }{" "}
+                                  km away
+                                </div>
+                              </>
+                            ) : (
+                              <div
+                                style={{
+                                  marginTop:
+                                    "5px",
+                                  fontSize:
+                                    "12px",
+                                  color:
+                                    "#666",
+                                }}
+                              >
+                                Calculating
+                                ETA...
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      {!studentLocation && (
+                        <div
+                          style={{
+                            marginTop:
+                              "8px",
+                            fontSize:
+                              "12px",
+                            color:
+                              "#777",
+                          }}
+                        >
+                          📍 Get your
+                          location to
+                          calculate
+                          shuttle ETA.
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
               )
             )}
           </div>
 
+
           {/* LOCATIONS */}
 
-          <h2>📍 Campus Locations</h2>
+          <h2>
+            📍 Campus Locations
+          </h2>
 
           {loading && (
-            <p>Loading campus data...</p>
+            <p>
+              Loading campus
+              data...
+            </p>
           )}
 
           {error && (
             <div
               style={{
-                background: "#fff3cd",
-                color: "#856404",
-                padding: "12px",
-                borderRadius: "8px",
-                marginBottom: "15px",
+                background:
+                  "#fff3cd",
+                color:
+                  "#856404",
+                padding:
+                  "12px",
+                borderRadius:
+                  "8px",
+                marginBottom:
+                  "15px",
               }}
             >
               ⚠️ {error}
@@ -1514,71 +2356,107 @@ function App() {
           {!loading &&
             filteredLocations.length ===
               0 && (
-              <p>No locations found.</p>
+              <p>
+                No locations
+                found.
+              </p>
             )}
 
           {filteredLocations.map(
-            (location, index) => (
+            (
+              location,
+              index
+            ) => (
               <div
                 key={
                   location.id ??
                   `${location.name}-${index}`
                 }
                 style={{
-                  padding: "12px",
-                  marginBottom: "10px",
-                  border: "1px solid #ddd",
-                  borderRadius: "8px",
-                  background: "#fafafa",
+                  padding:
+                    "12px",
+                  marginBottom:
+                    "10px",
+                  border:
+                    "1px solid #ddd",
+                  borderRadius:
+                    "8px",
+                  background:
+                    "#fafafa",
                 }}
               >
                 <h3
                   style={{
-                    margin: "0 0 6px 0",
+                    margin:
+                      "0 0 6px 0",
                   }}
                 >
-                  📍 {location.name}
+                  📍{" "}
+                  {
+                    location.name
+                  }
                 </h3>
 
                 <div>
-                  <strong>Type:</strong>{" "}
-                  {location.type}
+                  <strong>
+                    Type:
+                  </strong>{" "}
+                  {
+                    location.type
+                  }
                 </div>
 
                 <p
                   style={{
-                    margin: "6px 0",
+                    margin:
+                      "6px 0",
                   }}
                 >
-                  {location.description}
+                  {
+                    location.description
+                  }
                 </p>
 
                 <small>
-                  {location.latitude},{" "}
-                  {location.longitude}
+                  {
+                    location.latitude
+                  }
+                  ,{" "}
+                  {
+                    location.longitude
+                  }
                 </small>
 
                 <button
                   onClick={() =>
-                    handleNavigate(location)
+                    handleNavigate(
+                      location
+                    )
                   }
                   disabled={
                     gettingLocation ||
                     loadingRoute
                   }
                   style={{
-                    width: "100%",
-                    marginTop: "10px",
-                    padding: "10px",
-                    border: "none",
-                    borderRadius: "7px",
+                    width:
+                      "100%",
+                    marginTop:
+                      "10px",
+                    padding:
+                      "10px",
+                    border:
+                      "none",
+                    borderRadius:
+                      "7px",
                     background:
                       gettingLocation ||
                       loadingRoute
                         ? "#9e9e9e"
                         : "#1976d2",
-                    color: "white",
-                    fontWeight: "bold",
+                    color:
+                      "white",
+                    fontWeight:
+                      "bold",
                     cursor:
                       gettingLocation ||
                       loadingRoute
@@ -1597,6 +2475,7 @@ function App() {
           )}
         </aside>
 
+
         {/* MAP */}
 
         <main
@@ -1607,7 +2486,10 @@ function App() {
           }}
         >
           <MapContainer
-            center={[26.8438, 75.565]}
+            center={[
+              26.8438,
+              75.565,
+            ]}
             zoom={17}
             style={{
               width: "100%",
@@ -1619,24 +2501,46 @@ function App() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
+
             {/* STUDENT LOCATION */}
 
             {studentLocation && (
               <Marker
-                position={studentLocation}
-                icon={studentIcon}
+                position={
+                  studentLocation
+                }
+                icon={
+                  studentIcon
+                }
               >
                 <Popup>
                   📍{" "}
                   <strong>
-                    Your Current Location
+                    Your Current
+                    Location
                   </strong>
+
+                  <br />
+
+                  Latitude:{" "}
+                  {studentLocation[0].toFixed(
+                    6
+                  )}
+
+                  <br />
+
+                  Longitude:{" "}
+                  {studentLocation[1].toFixed(
+                    6
+                  )}
 
                   {selectedDestination && (
                     <>
                       <br />
+                      <br />
                       Navigating to:
                       <br />
+
                       <strong>
                         {
                           selectedDestination.name
@@ -1648,34 +2552,50 @@ function App() {
               </Marker>
             )}
 
+
             {/* ROUTE */}
 
-            {routeCoordinates.length > 0 && (
+            {routeCoordinates.length >
+              0 && (
               <Polyline
-                positions={routeCoordinates}
+                positions={
+                  routeCoordinates
+                }
                 pathOptions={{
-                  color: "#1976d2",
+                  color:
+                    "#1976d2",
                   weight: 6,
-                  opacity: 0.8,
+                  opacity:
+                    0.8,
                 }}
               />
             )}
 
+
             {/* CAMPUS LOCATIONS */}
 
             {filteredLocations.map(
-              (location, index) => {
-                const lat = Number(
-                  location.latitude
-                );
+              (
+                location,
+                index
+              ) => {
+                const lat =
+                  Number(
+                    location.latitude
+                  );
 
-                const lng = Number(
-                  location.longitude
-                );
+                const lng =
+                  Number(
+                    location.longitude
+                  );
 
                 if (
-                  !Number.isFinite(lat) ||
-                  !Number.isFinite(lng)
+                  !Number.isFinite(
+                    lat
+                  ) ||
+                  !Number.isFinite(
+                    lng
+                  )
                 ) {
                   return null;
                 }
@@ -1683,26 +2603,36 @@ function App() {
                 return (
                   <Marker
                     key={`location-${
-                      location.id ?? index
+                      location.id ??
+                      index
                     }`}
-                    position={[lat, lng]}
+                    position={[
+                      lat,
+                      lng,
+                    ]}
                     icon={getLocationIcon(
                       location.type
                     )}
                   >
                     <Popup>
                       <strong>
-                        {location.name}
+                        {
+                          location.name
+                        }
                       </strong>
 
                       <br />
 
                       Type:{" "}
-                      {location.type}
+                      {
+                        location.type
+                      }
 
                       <br />
 
-                      {location.description}
+                      {
+                        location.description
+                      }
 
                       <br />
                       <br />
@@ -1718,10 +2648,14 @@ function App() {
                             "8px 12px",
                           background:
                             "#1976d2",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "6px",
-                          cursor: "pointer",
+                          color:
+                            "white",
+                          border:
+                            "none",
+                          borderRadius:
+                            "6px",
+                          cursor:
+                            "pointer",
                         }}
                       >
                         🧭 Navigate Here
@@ -1732,32 +2666,53 @@ function App() {
               }
             )}
 
+
             {/* LIVE SHUTTLES */}
 
             {shuttles.map(
-              (shuttle, index) => {
-                const lat = Number(
-                  shuttle.latitude
-                );
+              (
+                shuttle,
+                index
+              ) => {
+                const lat =
+                  Number(
+                    shuttle.latitude
+                  );
 
-                const lng = Number(
-                  shuttle.longitude
-                );
+                const lng =
+                  Number(
+                    shuttle.longitude
+                  );
 
                 if (
-                  !Number.isFinite(lat) ||
-                  !Number.isFinite(lng)
+                  !Number.isFinite(
+                    lat
+                  ) ||
+                  !Number.isFinite(
+                    lng
+                  )
                 ) {
                   return null;
                 }
 
+                const etaData =
+                  shuttleETAs[
+                    shuttle.id
+                  ];
+
                 return (
                   <Marker
                     key={`shuttle-${
-                      shuttle.id ?? index
+                      shuttle.id ??
+                      index
                     }`}
-                    position={[lat, lng]}
-                    icon={shuttleIcon}
+                    position={[
+                      lat,
+                      lng,
+                    ]}
+                    icon={
+                      shuttleIcon
+                    }
                   >
                     <Popup>
                       <strong>
@@ -1781,9 +2736,48 @@ function App() {
                       <br />
 
                       📍{" "}
-                      {lat.toFixed(6)}
+                      {lat.toFixed(
+                        6
+                      )}
                       ,{" "}
-                      {lng.toFixed(6)}
+                      {lng.toFixed(
+                        6
+                      )}
+
+                      {studentLocation &&
+                        shuttle.status ===
+                          "active" && (
+                          <>
+                            <br />
+                            <br />
+
+                            <strong>
+                              ⏱️ ETA
+                            </strong>
+
+                            <br />
+
+                            {etaData ? (
+                              <>
+                                ~{" "}
+                                {
+                                  etaData.eta
+                                }{" "}
+                                min
+
+                                <br />
+
+                                📏{" "}
+                                {
+                                  etaData.distance
+                                }{" "}
+                                km away
+                              </>
+                            ) : (
+                              "Calculating..."
+                            )}
+                          </>
+                        )}
                     </Popup>
                   </Marker>
                 );
